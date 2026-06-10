@@ -1,0 +1,227 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Note that some adapters may set a maximum length for the String type by default, please ensure your strings are long
+// enough when changing adapters.
+// See https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string for more information
+datasource db {
+  provider = "sqlite"
+  url      = "file:dev.sqlite"
+}
+
+model Session {
+  id                  String    @id
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?
+  expires             DateTime?
+  accessToken         String
+  userId              BigInt?
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+enum Plan {
+  FREE
+  STARTER
+  PRO
+}
+
+enum RestorePosition {
+  ORIGINAL
+  TOP
+}
+
+enum ProductStatus {
+  ACTIVE
+  DRAFT
+  ARCHIVED
+}
+
+enum InventoryPolicy {
+  DENY
+  CONTINUE
+}
+
+enum InventoryStatus {
+  IN_STOCK
+  SOLD_OUT
+  UNKNOWN
+}
+
+enum TriggerSource {
+  WEBHOOK_INVENTORY
+  WEBHOOK_PRODUCT
+  BACKFILL
+  MANUAL
+}
+
+enum CollectionSortOrder {
+  MANUAL
+  ALPHA_ASC
+  ALPHA_DESC
+  BEST_SELLING
+  CREATED
+  CREATED_DESC
+  PRICE_ASC
+  PRICE_DESC
+}
+
+enum JobType {
+  PROCESS_INVENTORY_CHANGE
+  PROCESS_PRODUCT_UPDATE
+  CLEANUP_SHOP
+  REORDER_COLLECTION_CHUNK
+  SYNC_PRODUCT_COLLECTIONS
+  BACKFILL_SHOP
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  DEAD
+}
+
+model Shop {
+  id                       String                   @id @default(cuid())
+  shopDomain               String                   @unique
+  shopName                 String?
+  plan                     Plan                     @default(FREE)
+  createdAt                DateTime                 @default(now())
+  updatedAt                DateTime                 @updatedAt
+  settings                 Settings?
+  trackedProducts          TrackedProduct[]
+  collectionMemberships    CollectionMembership[]
+  inventoryStatusHistories InventoryStatusHistory[]
+  webhookEvents            WebhookEvent[]
+  jobs                     Job[]
+}
+
+model Settings {
+  id                     String          @id @default(cuid())
+  shopId                 String          @unique
+  shop                   Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  enabled                Boolean         @default(false)
+  pushSoldOutToBottom    Boolean         @default(true)
+  restoreWhenBackInStock Boolean         @default(true)
+  restorePosition        RestorePosition @default(ORIGINAL)
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+}
+
+model TrackedProduct {
+  id                String          @id @default(cuid())
+  shopId            String
+  shop              Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopifyProductId  String
+  title             String?
+  status            ProductStatus   @default(ACTIVE)
+  tracksInventory   Boolean         @default(false)
+  inventoryPolicy   InventoryPolicy @default(DENY)
+  totalAvailable    Int             @default(0)
+  isSoldOut         Boolean         @default(false)
+  soldOutAt            DateTime?
+  backInStockAt        DateTime?
+  lastStatusChangeAt   DateTime?
+  lastWebhookAt        DateTime?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  collectionMemberships    CollectionMembership[]
+  inventoryStatusHistories InventoryStatusHistory[]
+
+  @@unique([shopId, shopifyProductId])
+  @@index([shopId, isSoldOut])
+}
+
+model CollectionMembership {
+  id                    String          @id @default(cuid())
+  shopId                String
+  shop                  Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  trackedProductId      String
+  trackedProduct        TrackedProduct  @relation(fields: [trackedProductId], references: [id], onDelete: Cascade)
+  shopifyCollectionId   String
+  collectionTitle       String?
+  sortOrder             CollectionSortOrder @default(MANUAL)
+  isManualSort          Boolean         @default(true)
+  currentPosition       Int?
+  isAtBottom            Boolean         @default(false)
+  removedFromCollection Boolean         @default(false)
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+  originalPosition      OriginalCollectionPosition?
+
+  @@unique([shopId, shopifyCollectionId, trackedProductId])
+}
+
+model OriginalCollectionPosition {
+  id               String           @id @default(cuid())
+  membershipId     String           @unique
+  membership       CollectionMembership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  originalPosition Int
+  capturedAt       DateTime         @default(now())
+  restoredAt       DateTime?
+  restoreTarget    RestorePosition?
+}
+
+model InventoryStatusHistory {
+  id               String          @id @default(cuid())
+  shopId           String
+  shop             Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  trackedProductId String
+  trackedProduct   TrackedProduct  @relation(fields: [trackedProductId], references: [id], onDelete: Cascade)
+  previousStatus   InventoryStatus
+  newStatus        InventoryStatus
+  totalAvailable   Int             @default(0)
+  triggerSource    TriggerSource
+  shopifyWebhookId String?
+  metadata         Json?
+  createdAt        DateTime        @default(now())
+
+  @@index([shopId, trackedProductId, createdAt])
+}
+
+model WebhookEvent {
+  id               String   @id @default(cuid())
+  shopifyWebhookId String   @unique
+  shopId           String?
+  shop             Shop?    @relation(fields: [shopId], references: [id], onDelete: SetNull)
+  shopDomain       String
+  topic            String
+  receivedAt       DateTime @default(now())
+
+  @@index([shopDomain, receivedAt])
+}
+
+model Job {
+  id          String    @id @default(cuid())
+  shopId      String?
+  shop        Shop?     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopDomain  String
+  type        JobType
+  payload     Json
+  status      JobStatus @default(PENDING)
+  priority    Int       @default(10)
+  runAt       DateTime  @default(now())
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(5)
+  lastError   String?
+  dedupeKey   String?   @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status, runAt, priority])
+}
