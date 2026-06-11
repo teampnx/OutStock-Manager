@@ -5,6 +5,24 @@ import { AppProvider } from "@shopify/shopify-app-react-router/react";
 
 import { authenticate } from "../shopify.server";
 import { ensureShop, fetchShopName } from "../models/shop.server";
+import activityStylesheet from "../styles/activity.css?url";
+import dashboardStylesheet from "../styles/dashboard.css?url";
+import homeStylesheet from "../styles/home.css?url";
+import pricingStylesheet from "../styles/pricing.css?url";
+
+import "../styles/activity.css";
+import "../styles/dashboard.css";
+import "../styles/home.css";
+import "../styles/pricing.css";
+
+export function links() {
+  return [
+    { rel: "stylesheet", href: dashboardStylesheet },
+    { rel: "stylesheet", href: activityStylesheet },
+    { rel: "stylesheet", href: homeStylesheet },
+    { rel: "stylesheet", href: pricingStylesheet },
+  ];
+}
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
@@ -21,9 +39,18 @@ export default function App() {
   return (
     <AppProvider embedded apiKey={apiKey}>
       <s-app-nav>
-        <s-link href="/app">Dashboard</s-link>
+        {/* rel="home" marks /app as the parent nav landing page (hidden from menu) */}
+        <s-link
+          href="/app"
+          {...({ rel: "home" } as React.ComponentProps<"s-link">)}
+        >
+          OutStock Manager
+        </s-link>
+        <s-link href="/app/dashboard">Dashboard</s-link>
+        <s-link href="/app/collections">Collections</s-link>
+        <s-link href="/app/activity">Activity</s-link>
+        <s-link href="/app/pricing">Pricing</s-link>
         <s-link href="/app/settings">Settings</s-link>
-        <s-link href="/app/products">Products</s-link>
       </s-app-nav>
       <Outlet />
     </AppProvider>

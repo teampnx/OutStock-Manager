@@ -47,6 +47,8 @@ export async function enqueueJob(input: EnqueueJobInput): Promise<Job> {
         payload: data.payload,
         runAt: data.runAt,
         status: "PENDING",
+        attempts: 0,
+        lastError: null,
         updatedAt: new Date(),
       },
     });

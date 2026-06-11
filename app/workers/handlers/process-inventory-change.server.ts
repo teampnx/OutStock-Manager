@@ -1,6 +1,7 @@
 import type { Job } from "@prisma/client";
 
 import { getAdminForShop } from "../../lib/shopify-admin.server";
+import { enqueueCollectionReordersForStatusChange } from "../../models/collection-reorder.server";
 import { syncProductInventory } from "../../models/tracked-product.server";
 import { resolveProductIdFromInventoryItem } from "../../services/shopify-product-inventory.server";
 
@@ -33,7 +34,7 @@ export async function processInventoryChangeJob(job: Job): Promise<void> {
     return;
   }
 
-  await syncProductInventory({
+  const result = await syncProductInventory({
     shopDomain: job.shopDomain,
     shopifyProductId,
     admin,
@@ -46,4 +47,14 @@ export async function processInventoryChangeJob(job: Job): Promise<void> {
       topic: payload.topic ?? null,
     },
   });
+
+  if (result?.statusChanged) {
+    await enqueueCollectionReordersForStatusChange(
+      job.shopDomain,
+      result.trackedProduct.id,
+      shopifyProductId,
+      result.previousStatus,
+      result.newStatus,
+    );
+  }
 }

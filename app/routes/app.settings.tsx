@@ -11,6 +11,10 @@ import type { RestorePosition } from "@prisma/client";
 
 import { authenticate } from "../shopify.server";
 import {
+  backfillSoldOutProductsForShop,
+  type BackfillSoldOutProductsResult,
+} from "../models/collection-reorder.server";
+import {
   getSettingsForShop,
   parseSettingsFormData,
   updateSettingsForShop,
@@ -31,8 +35,26 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const formData = await request.formData();
+
+  if (formData.get("intent") === "backfill-sold-out") {
+    try {
+      const backfill = await backfillSoldOutProductsForShop(session.shop, admin);
+      return {
+        success: true as const,
+        intent: "backfill-sold-out" as const,
+        backfill,
+      };
+    } catch {
+      return {
+        success: false as const,
+        intent: "backfill-sold-out" as const,
+        error: "Could not sync sold-out products. Please try again.",
+      };
+    }
+  }
+
   const parsed = parseSettingsFormData(formData);
 
   if (!parsed.ok) {
@@ -89,14 +111,30 @@ export default function SettingsPage() {
   }, [settings]);
 
   useEffect(() => {
-    if (fetcher.data?.success) {
+    if (fetcher.data?.success && fetcher.data.intent === "backfill-sold-out") {
+      shopify.toast.show("Sold-out product sync completed");
+    } else if (fetcher.data?.success && !fetcher.data.intent) {
       shopify.toast.show("Settings saved");
     }
   }, [fetcher.data, shopify]);
 
   const isSaving =
     fetcher.state === "submitting" || fetcher.state === "loading";
-  const saveError = fetcher.data?.success === false ? fetcher.data.error : null;
+  const isSyncingSoldOut =
+    fetcher.formData?.get("intent") === "backfill-sold-out" && isSaving;
+  const backfillResult: BackfillSoldOutProductsResult | null =
+    fetcher.data?.success && fetcher.data.intent === "backfill-sold-out"
+      ? fetcher.data.backfill
+      : null;
+  const backfillError =
+    fetcher.data?.success === false &&
+    fetcher.data.intent === "backfill-sold-out"
+      ? fetcher.data.error
+      : null;
+  const saveError =
+    fetcher.data?.success === false && fetcher.data.intent !== "backfill-sold-out"
+      ? fetcher.data.error
+      : null;
   const fieldErrors =
     fetcher.data?.success === false ? fetcher.data.fieldErrors : undefined;
 
@@ -113,6 +151,10 @@ export default function SettingsPage() {
       },
       { method: "post" },
     );
+  };
+
+  const handleSyncSoldOut = () => {
+    fetcher.submit({ intent: "backfill-sold-out" }, { method: "post" });
   };
 
   if (loadError) {
@@ -205,10 +247,65 @@ export default function SettingsPage() {
         )}
       </s-section>
 
+      <s-section heading="Sync sold-out products">
+        <s-paragraph>
+          One-time sync for products that were already sold out before automatic
+          sorting was enabled. Moves each sold-out product to the bottom of its
+          manual collections and preserves original positions for restore.
+        </s-paragraph>
+
+        <s-button
+          onClick={handleSyncSoldOut}
+          {...(isSyncingSoldOut ? { loading: true } : {})}
+          disabled={isSyncingSoldOut || isSaving}
+        >
+          Sync Sold-Out Products
+        </s-button>
+
+        {backfillError && (
+          <s-banner tone="critical" heading="Sync failed">
+            <s-paragraph>{backfillError}</s-paragraph>
+          </s-banner>
+        )}
+
+        {backfillResult && (
+          <s-box
+            padding="base"
+            borderWidth="base"
+            borderRadius="base"
+            background="subdued"
+          >
+            <s-stack direction="block" gap="small">
+              <s-paragraph>
+                <s-text type="strong">Products scanned: </s-text>
+                {backfillResult.scannedProducts}
+              </s-paragraph>
+              <s-paragraph>
+                <s-text type="strong">Collection memberships processed: </s-text>
+                {backfillResult.scannedMemberships}
+              </s-paragraph>
+              <s-paragraph>
+                <s-text type="strong">Reordered: </s-text>
+                {backfillResult.reordered}
+              </s-paragraph>
+              <s-paragraph>
+                <s-text type="strong">Skipped: </s-text>
+                {backfillResult.skipped}
+              </s-paragraph>
+              <s-paragraph>
+                <s-text type="strong">Failed: </s-text>
+                {backfillResult.failed}
+              </s-paragraph>
+            </s-stack>
+          </s-box>
+        )}
+      </s-section>
+
       <s-section slot="aside" heading="Note">
         <s-paragraph>
-          These preferences are saved to your store. Product sorting will be
-          applied in a future update.
+          New inventory changes are handled automatically when the app is
+          enabled. Use sync sold-out products to catch up existing sold-out
+          items.
         </s-paragraph>
       </s-section>
     </s-page>

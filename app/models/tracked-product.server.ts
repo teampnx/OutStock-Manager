@@ -64,9 +64,16 @@ export async function getProductInventoryStatus(
   };
 }
 
+export type SyncProductInventoryResult = {
+  trackedProduct: TrackedProduct;
+  statusChanged: boolean;
+  previousStatus: InventoryStatus;
+  newStatus: InventoryStatus;
+};
+
 export async function syncProductInventory(
   input: SyncProductInventoryInput,
-): Promise<TrackedProduct | null> {
+): Promise<SyncProductInventoryResult | null> {
   const evaluation = await getProductInventoryStatus(
     input.admin,
     input.shopifyProductId,
@@ -165,7 +172,12 @@ export async function syncProductInventory(
     });
   }
 
-  return trackedProduct;
+  return {
+    trackedProduct,
+    statusChanged,
+    previousStatus,
+    newStatus,
+  };
 }
 
 export type TrackedProductListItem = {
@@ -204,4 +216,27 @@ export async function listTrackedProductsForShop(
     status: trackedProductToInventoryStatus(product),
     lastStatusChangeAt: product.lastStatusChangeAt?.toISOString() ?? null,
   }));
+}
+
+export async function ensureTrackedProductPlaceholder(
+  shopId: string,
+  shopifyProductId: string,
+  title?: string | null,
+): Promise<TrackedProduct> {
+  return prisma.trackedProduct.upsert({
+    where: {
+      shopId_shopifyProductId: {
+        shopId,
+        shopifyProductId,
+      },
+    },
+    create: {
+      shopId,
+      shopifyProductId,
+      title: title ?? null,
+    },
+    update: {
+      ...(title ? { title } : {}),
+    },
+  });
 }

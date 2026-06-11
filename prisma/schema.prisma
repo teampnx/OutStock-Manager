@@ -84,7 +84,13 @@ enum JobType {
   PROCESS_PRODUCT_UPDATE
   CLEANUP_SHOP
   REORDER_COLLECTION_CHUNK
+  REORDER_SOLD_OUT_PRODUCT
+  RESTORE_PRODUCT_POSITION
   SYNC_PRODUCT_COLLECTIONS
+  SYNC_COLLECTION
+  SYNC_COLLECTION_MEMBERSHIP
+  BACKFILL_COLLECTIONS
+  BACKFILL_SOLD_OUT_PRODUCTS
   BACKFILL_SHOP
 }
 
@@ -96,6 +102,17 @@ enum JobStatus {
   DEAD
 }
 
+enum ActivityType {
+  PUSH_SOLD_OUT
+  RESTORE_ORIGINAL
+  RESTORE_TOP
+  REORDER_SKIPPED
+  COLLECTION_SYNCED
+  COLLECTION_DELETED
+  BACKFILL_SOLD_OUT_COMPLETED
+  BACKFILL_COLLECTIONS_COMPLETED
+}
+
 model Shop {
   id                       String                   @id @default(cuid())
   shopDomain               String                   @unique
@@ -105,10 +122,12 @@ model Shop {
   updatedAt                DateTime                 @updatedAt
   settings                 Settings?
   trackedProducts          TrackedProduct[]
+  collections              Collection[]
   collectionMemberships    CollectionMembership[]
   inventoryStatusHistories InventoryStatusHistory[]
   webhookEvents            WebhookEvent[]
   jobs                     Job[]
+  activityLogs             ActivityLog[]
 }
 
 model Settings {
@@ -140,11 +159,72 @@ model TrackedProduct {
   lastWebhookAt        DateTime?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
-  collectionMemberships    CollectionMembership[]
-  inventoryStatusHistories InventoryStatusHistory[]
+  collectionMemberships       CollectionMembership[]
+  collectionProductPositions  CollectionProductPosition[]
+  inventoryStatusHistories    InventoryStatusHistory[]
+  activityLogs                ActivityLog[]
 
   @@unique([shopId, shopifyProductId])
   @@index([shopId, isSoldOut])
+}
+
+model Collection {
+  id                  String                    @id @default(cuid())
+  shopId              String
+  shop                Shop                      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  shopifyCollectionId String
+  title               String
+  sortOrder           CollectionSortOrder       @default(MANUAL)
+  enabled             Boolean                   @default(false)
+  enabledAt           DateTime?
+  lastSortAttemptAt   DateTime?
+  lastSortedAt        DateTime?
+  lastSyncedAt        DateTime?
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+  productPositions    CollectionProductPosition[]
+  activityLogs        ActivityLog[]
+
+  @@unique([shopId, shopifyCollectionId])
+  @@index([shopId])
+  @@index([shopId, enabled])
+}
+
+model ActivityLog {
+  id               String        @id @default(cuid())
+  shopId           String
+  shop             Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  type             ActivityType
+  trackedProductId String?
+  trackedProduct   TrackedProduct? @relation(fields: [trackedProductId], references: [id], onDelete: SetNull)
+  collectionId     String?
+  collection       Collection?   @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  productTitle     String?
+  collectionTitle  String?
+  oldPosition      Int?
+  newPosition      Int?
+  detail           String?
+  metadata         Json?
+  createdAt        DateTime      @default(now())
+
+  @@index([shopId, createdAt])
+  @@index([shopId, type])
+}
+
+model CollectionProductPosition {
+  id               String         @id @default(cuid())
+  collectionId     String
+  collection       Collection     @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  trackedProductId String
+  trackedProduct   TrackedProduct @relation(fields: [trackedProductId], references: [id], onDelete: Cascade)
+  originalPosition          Int
+  currentPosition           Int
+  restorePositionCaptured   Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([collectionId, trackedProductId])
+  @@index([collectionId])
 }
 
 model CollectionMembership {

@@ -1,0 +1,76 @@
+.activity-metric-value {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--p-color-text, #303030);
+}
+
+.activity-metric-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--p-color-text-secondary, #616161);
+}
+
+.activity-metric-success .activity-metric-value {
+  color: #29845a;
+}
+
+.activity-metric-warning .activity-metric-value {
+  color: #b98900;
+}
+
+.activity-metric-error .activity-metric-value {
+  color: #c5280c;
+}
+
+.activity-timeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.activity-timeline-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--p-color-border-secondary, #e3e3e3);
+}
+
+.activity-timeline-row:last-child {
+  border-bottom: none;
+}
+
+.activity-timeline-main {
+  min-width: 0;
+}
+
+.activity-timeline-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--p-color-text, #303030);
+}
+
+.activity-timeline-description {
+  margin: 2px 0 0;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--p-color-text-secondary, #616161);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.activity-timeline-time {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--p-color-text-secondary, #8a8a8a);
+  white-space: nowrap;
+}

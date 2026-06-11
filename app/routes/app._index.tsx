@@ -1,132 +1,453 @@
+import { useMemo, useState, type ReactNode } from "react";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
+import { getDashboardStats } from "../models/activity-log.server";
+import { listCollectionManagementForShop } from "../models/collection-management.server";
 import { authenticate } from "../shopify.server";
-import { getShopByDomain } from "../models/shop.server";
+import { ensureShop } from "../models/shop.server";
+
+type SetupStep = {
+  id: string;
+  label: string;
+  completed: boolean;
+  actionHref?: string;
+  actionLabel?: string;
+};
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
+
+  let stats = {
+    totalTrackedProducts: 0,
+    totalTrackedCollections: 0,
+    soldOutProducts: 0,
+    productsMovedToBottom: 0,
+    lastSuccessfulSync: null as string | null,
+  };
+  let enabledCollections = 0;
+  let hasSortedCollection = false;
 
   try {
-    const shop = await getShopByDomain(session.shop);
+    const shop = await ensureShop(session.shop);
 
-    if (!shop?.settings) {
-      return {
-        shopDomain: session.shop,
-        shopName: shop?.shopName ?? session.shop,
-        plan: shop?.plan ?? "FREE",
-        settings: null,
-        error: "Unable to load store settings.",
+    try {
+      const dashboardStats = await getDashboardStats(session.shop, shop.id);
+      stats = {
+        totalTrackedProducts: dashboardStats.totalTrackedProducts,
+        totalTrackedCollections: dashboardStats.totalTrackedCollections,
+        soldOutProducts: dashboardStats.soldOutProducts,
+        productsMovedToBottom: dashboardStats.productsMovedToBottom,
+        lastSuccessfulSync: dashboardStats.lastSuccessfulSync,
       };
+    } catch (statsError) {
+      console.error(
+        `[onboarding] Failed to load statistics for ${session.shop}:`,
+        statsError,
+      );
+    }
+
+    try {
+      const collectionData = await listCollectionManagementForShop(
+        session.shop,
+        admin,
+      );
+      enabledCollections = collectionData.counts.enabled;
+      hasSortedCollection = collectionData.collections.some(
+        (collection) => collection.sortStatus.lastSortedAt != null,
+      );
+    } catch (collectionsError) {
+      console.error(
+        `[onboarding] Failed to load collections for ${session.shop}:`,
+        collectionsError,
+      );
     }
 
     return {
-      shopDomain: shop.shopDomain,
       shopName: shop.shopName ?? shop.shopDomain,
-      plan: shop.plan,
       settings: shop.settings,
-      error: null,
+      stats,
+      enabledCollections,
+      hasSortedCollection,
+      error: shop.settings ? null : "Unable to load store settings.",
     };
-  } catch {
+  } catch (error) {
+    console.error(
+      `[onboarding] Failed to load welcome page for ${session.shop}:`,
+      error,
+    );
+
     return {
-      shopDomain: session.shop,
       shopName: session.shop,
-      plan: "FREE" as const,
       settings: null,
-      error: "Something went wrong loading your dashboard.",
+      stats,
+      enabledCollections,
+      hasSortedCollection,
+      error: "Something went wrong loading your welcome page.",
     };
   }
 };
 
-function formatRestorePosition(position: string) {
-  return position === "TOP" ? "Top of collection" : "Original position";
+function PanelCard({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <s-box
+      padding="none"
+      borderWidth="base"
+      borderRadius="large"
+      background="base"
+    >
+      <div className="home-panel-header">
+        <p className="home-panel-title">{title}</p>
+      </div>
+      {children}
+    </s-box>
+  );
 }
 
-export default function Dashboard() {
-  const { shopName, plan, settings, error } = useLoaderData<typeof loader>();
+function SetupStepItem({
+  step,
+  index,
+}: {
+  step: SetupStep;
+  index: number;
+}) {
+  return (
+    <div className="home-setup-item">
+      <div
+        className={`home-setup-step-marker ${
+          step.completed
+            ? "home-setup-step-marker-complete"
+            : "home-setup-step-marker-pending"
+        }`}
+      >
+        {step.completed ? (
+          <s-icon type="check" tone="success" size="small" />
+        ) : (
+          index + 1
+        )}
+      </div>
+      <p
+        className={`home-setup-step-label ${
+          step.completed ? "home-setup-step-label-complete" : ""
+        }`}
+      >
+        {step.label}
+      </p>
+      {!step.completed && step.actionHref && step.actionLabel ? (
+        <s-link href={step.actionHref}>{step.actionLabel}</s-link>
+      ) : step.completed ? (
+        <s-badge tone="success">Done</s-badge>
+      ) : null}
+    </div>
+  );
+}
 
-  const isEnabled = settings?.enabled ?? false;
+function StatCard({ label, value }: { label: string; value: number }) {
+  return (
+    <s-box
+      padding="large"
+      borderWidth="base"
+      borderRadius="large"
+      background="base"
+    >
+      <s-stack direction="block" gap="small-100">
+        <p className="home-stat-value">{value.toLocaleString()}</p>
+        <p className="home-stat-label">{label}</p>
+      </s-stack>
+    </s-box>
+  );
+}
+
+function HelpLink({
+  href,
+  icon,
+  label,
+  description,
+}: {
+  href: string;
+  icon: "email" | "book" | "calendar";
+  label: string;
+  description: string;
+}) {
+  return (
+    <a
+      className="home-help-link"
+      href={href}
+      target={href.startsWith("http") ? "_blank" : undefined}
+      rel={href.startsWith("http") ? "noreferrer" : undefined}
+    >
+      <s-icon type={icon} color="subdued" />
+      <s-stack direction="block" gap="small-100">
+        <s-text type="strong">{label}</s-text>
+        <s-text color="subdued">{description}</s-text>
+      </s-stack>
+    </a>
+  );
+}
+
+export default function Onboarding() {
+  const {
+    shopName,
+    settings,
+    stats,
+    enabledCollections,
+    hasSortedCollection,
+    error,
+  } = useLoaderData<typeof loader>();
+  const [videoAcknowledged, setVideoAcknowledged] = useState(false);
+
+  const isAppEnabled = settings?.enabled ?? false;
+  const hasRunFirstSort =
+    stats.lastSuccessfulSync != null ||
+    stats.productsMovedToBottom > 0 ||
+    hasSortedCollection;
+
+  const setupSteps = useMemo<SetupStep[]>(
+    () => [
+      {
+        id: "install",
+        label: "Install App",
+        completed: true,
+      },
+      {
+        id: "enable-app",
+        label: "Enable App",
+        completed: isAppEnabled,
+        actionHref: "/app/settings",
+        actionLabel: "Open Settings",
+      },
+      {
+        id: "enable-push-down",
+        label: "Enable Push Down on a collection",
+        completed: enabledCollections > 0,
+        actionHref: "/app/collections",
+        actionLabel: "Open Collections",
+      },
+      {
+        id: "first-sort",
+        label: "Run first collection sort",
+        completed: hasRunFirstSort,
+        actionHref: "/app/collections",
+        actionLabel: "Sort collections",
+      },
+    ],
+    [enabledCollections, hasRunFirstSort, isAppEnabled],
+  );
+
+  const completedSteps = setupSteps.filter((step) => step.completed).length;
+  const totalSteps = setupSteps.length;
+  const progressPercent = Math.round((completedSteps / totalSteps) * 100);
+  const onboardingComplete = completedSteps === totalSteps;
 
   return (
-    <s-page heading="OutStock Manager">
-      <s-link slot="primary-action" href="/app/settings">
-        Manage settings
+    <s-page heading="OutStock Manager" inlineSize="large">
+      <s-link slot="primary-action" href="/app/dashboard">
+        View Dashboard
       </s-link>
 
       {error && (
-        <s-banner tone="critical" heading="Unable to load dashboard">
+        <s-banner tone="critical" heading="Unable to load welcome page">
           <s-paragraph>{error}</s-paragraph>
         </s-banner>
       )}
 
-      <s-section heading="Store overview">
-        <s-stack direction="block" gap="base">
-          <s-paragraph>
-            <s-text type="strong">Store: </s-text>
-            {shopName}
-          </s-paragraph>
-          <s-paragraph>
-            <s-text type="strong">Plan: </s-text>
-            {plan}
-          </s-paragraph>
-        </s-stack>
-      </s-section>
+      <s-stack direction="block" gap="large">
+        <s-box
+          padding="large"
+          borderWidth="base"
+          borderRadius="large"
+          background="base"
+        >
+          <s-stack direction="block" gap="small-200">
+            <p className="home-hero-title">Welcome to OutStock Manager</p>
+            <p className="home-hero-subtitle">
+              {onboardingComplete
+                ? `${shopName} is set up and sorting sold-out products automatically.`
+                : `Finish setup for ${shopName} to start pushing sold-out products to the bottom of your collections.`}
+            </p>
+          </s-stack>
+        </s-box>
 
-      <s-section heading="App status">
-        {settings ? (
-          <s-stack direction="block" gap="base">
-            <s-banner
-              tone={isEnabled ? "success" : "warning"}
-              heading={isEnabled ? "OutStock Manager is enabled" : "OutStock Manager is disabled"}
-            >
-              <s-paragraph>
-                {isEnabled
-                  ? "Your out-of-stock sorting preferences are saved and ready for the next phase."
-                  : "Enable the app in Settings to prepare your store for automatic sold-out sorting."}
-              </s-paragraph>
-            </s-banner>
+        <s-grid
+          gridTemplateColumns="repeat(auto-fit, minmax(320px, 1fr))"
+          gap="large"
+        >
+          <PanelCard title="Setup progress">
+            <s-box padding="base">
+              <s-stack direction="block" gap="base">
+                <s-stack direction="block" gap="small-100">
+                  <s-grid
+                    gridTemplateColumns="1fr auto"
+                    gap="small-200"
+                    alignItems="center"
+                  >
+                    <p className="home-progress-label">
+                      {completedSteps} of {totalSteps} steps complete
+                    </p>
+                    <s-badge tone={onboardingComplete ? "success" : "info"}>
+                      {progressPercent}%
+                    </s-badge>
+                  </s-grid>
+                  <div className="home-progress-track">
+                    <div
+                      className="home-progress-fill"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                </s-stack>
 
-            <s-box
-              padding="base"
-              borderWidth="base"
-              borderRadius="base"
-              background="subdued"
-            >
-              <s-stack direction="block" gap="small">
-                <s-paragraph>
-                  <s-text type="strong">Push sold out to bottom: </s-text>
-                  {settings.pushSoldOutToBottom ? "On" : "Off"}
-                </s-paragraph>
-                <s-paragraph>
-                  <s-text type="strong">Restore when back in stock: </s-text>
-                  {settings.restoreWhenBackInStock ? "On" : "Off"}
-                </s-paragraph>
-                {settings.restoreWhenBackInStock && (
-                  <s-paragraph>
-                    <s-text type="strong">Restore position: </s-text>
-                    {formatRestorePosition(settings.restorePosition)}
-                  </s-paragraph>
-                )}
+                <div className="home-setup-list">
+                  {setupSteps.map((step, index) => (
+                    <SetupStepItem key={step.id} step={step} index={index} />
+                  ))}
+                </div>
               </s-stack>
             </s-box>
-          </s-stack>
-        ) : (
-          <s-paragraph>Settings are not available yet. Open Settings to finish setup.</s-paragraph>
-        )}
-      </s-section>
+          </PanelCard>
 
-      <s-section slot="aside" heading="Getting started">
-        <s-unordered-list>
-          <s-list-item>
-            Configure how sold-out products should behave in Settings.
-          </s-list-item>
-          <s-list-item>
-            Inventory sorting will be available in a future release.
-          </s-list-item>
-        </s-unordered-list>
-        <s-link href="/app/settings">Go to Settings</s-link>
-      </s-section>
+          <PanelCard title="Product demo">
+            <s-box padding="base">
+              <s-stack direction="block" gap="base">
+                <div className="home-video-placeholder">
+                  <button
+                    type="button"
+                    className="home-video-play"
+                    aria-label="Play demo video"
+                    onClick={() => setVideoAcknowledged(true)}
+                  >
+                    <s-icon type="play" tone="info" />
+                  </button>
+                </div>
+                {videoAcknowledged ? (
+                  <s-banner tone="info">
+                    Demo video coming soon. Use the setup checklist to get
+                    started in the meantime.
+                  </s-banner>
+                ) : null}
+                <p className="home-video-description">
+                  Watch a quick walkthrough of enabling Push Down, choosing
+                  collections, and running your first automatic sort.
+                </p>
+              </s-stack>
+            </s-box>
+          </PanelCard>
+        </s-grid>
+
+        <s-stack direction="block" gap="small-200">
+          <p className="home-panel-title">Quick stats</p>
+          <s-grid
+            gridTemplateColumns="repeat(auto-fit, minmax(160px, 1fr))"
+            gap="base"
+          >
+            <StatCard
+              label="Products tracked"
+              value={stats.totalTrackedProducts}
+            />
+            <StatCard
+              label="Collections tracked"
+              value={stats.totalTrackedCollections}
+            />
+            <StatCard
+              label="Push Down enabled collections"
+              value={enabledCollections}
+            />
+            <StatCard label="Sold out products" value={stats.soldOutProducts} />
+          </s-grid>
+        </s-stack>
+
+        <s-grid
+          gridTemplateColumns="repeat(auto-fit, minmax(280px, 1fr))"
+          gap="large"
+        >
+          <PanelCard title="Quick actions">
+            <s-box padding="base">
+              <s-stack direction="block" gap="small-200">
+                <s-button href="/app/collections" icon="collection-list">
+                  Open Collections
+                </s-button>
+                <s-button href="/app/activity" variant="secondary" icon="list-bulleted">
+                  View Activity
+                </s-button>
+                <s-button href="/app/settings" variant="secondary" icon="settings">
+                  Open Settings
+                </s-button>
+                <s-button href="/app/collections" variant="secondary" icon="sort">
+                  Sort Enabled Collections
+                </s-button>
+              </s-stack>
+            </s-box>
+          </PanelCard>
+
+          <PanelCard title="Help &amp; support">
+            <s-box padding="base">
+              <HelpLink
+                href="mailto:support@outstockmanager.app"
+                icon="email"
+                label="Contact support"
+                description="Get help from our team within one business day."
+              />
+              <HelpLink
+                href="https://shopify.dev/docs/apps"
+                icon="book"
+                label="Documentation"
+                description="Read setup guides and troubleshooting tips."
+              />
+              <HelpLink
+                href="https://calendly.com"
+                icon="calendar"
+                label="Book demo call"
+                description="Schedule a 15-minute walkthrough with our team."
+              />
+            </s-box>
+          </PanelCard>
+        </s-grid>
+
+        {onboardingComplete ? (
+          <s-box
+            padding="large"
+            borderWidth="base"
+            borderRadius="large"
+            background="base"
+          >
+            <s-grid
+              gridTemplateColumns="1fr auto"
+              gap="base"
+              alignItems="center"
+            >
+              <s-stack direction="block" gap="small-200">
+                <s-stack direction="inline" gap="small-100" alignItems="center">
+                  <div className="home-review-stars" aria-hidden="true">
+                    <s-icon type="star-filled" tone="warning" />
+                    <s-icon type="star-filled" tone="warning" />
+                    <s-icon type="star-filled" tone="warning" />
+                    <s-icon type="star-filled" tone="warning" />
+                    <s-icon type="star-filled" tone="warning" />
+                  </div>
+                  <s-text type="strong">Enjoying OutStock Manager?</s-text>
+                </s-stack>
+                <s-text color="subdued">
+                  Your store is fully set up. A quick review on the Shopify App
+                  Store helps other merchants discover automatic sold-out sorting.
+                </s-text>
+              </s-stack>
+              <s-button
+                href="https://apps.shopify.com"
+                target="_blank"
+                variant="primary"
+              >
+                Leave a review
+              </s-button>
+            </s-grid>
+          </s-box>
+        ) : null}
+      </s-stack>
     </s-page>
   );
 }
