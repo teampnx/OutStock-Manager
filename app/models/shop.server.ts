@@ -25,10 +25,22 @@ export async function fetchShopName(
   }
 }
 
+async function normalizeLegacyShopPlan(shopDomain: string): Promise<void> {
+  // Prisma enum no longer includes STARTER (renamed to GROWTH). Raw SQL avoids
+  // read failures when legacy rows still store the old value.
+  await prisma.$executeRaw`
+    UPDATE "Shop"
+    SET "plan" = 'GROWTH'
+    WHERE "shopDomain" = ${shopDomain} AND "plan" = 'STARTER'
+  `;
+}
+
 export async function ensureShop(
   shopDomain: string,
   shopName?: string | null,
 ): Promise<ShopWithSettings> {
+  await normalizeLegacyShopPlan(shopDomain);
+
   const shop = await prisma.shop.upsert({
     where: { shopDomain },
     create: {

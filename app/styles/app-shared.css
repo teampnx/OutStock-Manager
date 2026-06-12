@@ -1,0 +1,158 @@
+/* Shared review-ready UI patterns */
+
+.page-intro-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 1.35;
+  color: var(--p-color-text, #303030);
+}
+
+.page-intro-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--p-color-text-secondary, #616161);
+}
+
+.stat-card-value {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--p-color-text, #303030);
+}
+
+.stat-card-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--p-color-text-secondary, #616161);
+}
+
+.stat-card-accent-success .stat-card-value {
+  color: #29845a;
+}
+
+.stat-card-accent-warning .stat-card-value {
+  color: #b98900;
+}
+
+.stat-card-accent-critical .stat-card-value {
+  color: #c5280c;
+}
+
+.stat-card-accent-info .stat-card-value {
+  color: #005bd3;
+}
+
+.pagination-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--p-color-border-secondary, #e3e3e3);
+  background: var(--p-color-bg-surface-secondary, #f6f6f7);
+}
+
+.pagination-summary {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--p-color-text-secondary, #616161);
+}
+
+.timeline-group-label {
+  padding: 8px 16px 4px;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--p-color-text-secondary, #8a8a8a);
+  background: var(--p-color-bg-surface-secondary, #f6f6f7);
+  border-bottom: 1px solid var(--p-color-border-secondary, #e3e3e3);
+}
+
+.chart-card-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--p-color-text, #303030);
+}
+
+.chart-bar-row {
+  display: grid;
+  grid-template-columns: 88px 1fr 40px;
+  gap: 10px;
+  align-items: center;
+}
+
+.chart-bar-label {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--p-color-text-secondary, #616161);
+}
+
+.chart-bar-track {
+  overflow: hidden;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--p-color-bg-surface-secondary, #f6f6f7);
+  border: 1px solid var(--p-color-border-secondary, #e3e3e3);
+}
+
+.chart-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+.chart-bar-value {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--p-color-text, #303030);
+}
+
+.faq-item + .faq-item {
+  border-top: 1px solid var(--p-color-border-secondary, #e3e3e3);
+}
+
+.faq-question {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--p-color-text, #303030);
+}
+
+.faq-answer {
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--p-color-text-secondary, #616161);
+}
+
+.benefit-card-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--p-color-text, #303030);
+}
+
+.benefit-card-text {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--p-color-text-secondary, #616161);
+}

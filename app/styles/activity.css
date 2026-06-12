@@ -74,3 +74,13 @@
   color: var(--p-color-text-secondary, #8a8a8a);
   white-space: nowrap;
 }
+
+.activity-timeline-row:hover {
+  background: var(--p-color-bg-surface-hover, #f7f7f7);
+}
+
+.activity-filter-count {
+  opacity: 0.75;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}

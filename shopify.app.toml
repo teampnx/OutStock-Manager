@@ -6,6 +6,8 @@ application_url = "https://example.com"
 embedded = true
 
 [build]
+# Syncs application_url + redirect_urls to the active dev tunnel on `shopify app dev`.
+# Required when using Cloudflare Quick Tunnels — stale tunnel URLs break the parent app link.
 automatically_update_urls_on_dev = true
 dev_store_url = "outstock-test-lionlx2x.myshopify.com"
 
@@ -40,6 +42,10 @@ api_version = "2026-04"
   uri = "/webhooks/products/update"
   topics = [ "products/update" ]
 
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/app/subscriptions/update"
+  topics = [ "app_subscriptions/update" ]
+
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "read_products,read_inventory,write_products"
@@ -47,4 +53,9 @@ optional_scopes = [ ]
 use_legacy_install_flow = false
 
 [auth]
-redirect_urls = [ ]
+# Placeholder host — replaced with the active dev tunnel when `shopify app dev` runs.
+redirect_urls = [
+  "https://example.com/auth/callback",
+  "https://example.com/auth/shopify/callback",
+  "https://example.com/api/auth/callback",
+]

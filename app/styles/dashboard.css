@@ -161,3 +161,26 @@
 .dashboard-health-warning .dashboard-health-value {
   color: #8a6116;
 }
+
+.dashboard-charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .dashboard-charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.dashboard-chart-panel {
+  padding: 16px;
+}
+
+.dashboard-chart-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 12px;
+}

@@ -1,0 +1,47 @@
+.settings-section-lead {
+  margin: 0 0 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--p-color-text-secondary, #616161);
+}
+
+.settings-aside-card {
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--p-color-bg-surface-secondary, #f6f6f7);
+  border: 1px solid var(--p-color-border-secondary, #e3e3e3);
+}
+
+.settings-aside-title {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--p-color-text, #303030);
+}
+
+.settings-aside-text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--p-color-text-secondary, #616161);
+}
+
+.settings-result-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 16px;
+}
+
+.settings-result-label {
+  margin: 0;
+  font-size: 12px;
+  color: var(--p-color-text-secondary, #616161);
+}
+
+.settings-result-value {
+  margin: 2px 0 0;
+  font-size: 18px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+  color: var(--p-color-text, #303030);
+}

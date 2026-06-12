@@ -35,8 +35,17 @@ model Session {
 
 enum Plan {
   FREE
-  STARTER
+  GROWTH
   PRO
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  CANCELLED
+  DECLINED
+  EXPIRED
+  FROZEN
 }
 
 enum RestorePosition {
@@ -128,6 +137,22 @@ model Shop {
   webhookEvents            WebhookEvent[]
   jobs                     Job[]
   activityLogs             ActivityLog[]
+  subscription             Subscription?
+}
+
+model Subscription {
+  id                    String             @id @default(cuid())
+  shopId                String             @unique
+  shop                  Shop               @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  plan                  Plan               @default(FREE)
+  shopifySubscriptionId String?
+  status                SubscriptionStatus @default(ACTIVE)
+  isTest                Boolean            @default(true)
+  currentPeriodEnd      DateTime?
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  @@index([shopifySubscriptionId])
 }
 
 model Settings {

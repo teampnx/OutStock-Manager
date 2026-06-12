@@ -6,21 +6,27 @@ import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { authenticate } from "../shopify.server";
 import { ensureShop, fetchShopName } from "../models/shop.server";
 import activityStylesheet from "../styles/activity.css?url";
+import appSharedStylesheet from "../styles/app-shared.css?url";
 import dashboardStylesheet from "../styles/dashboard.css?url";
 import homeStylesheet from "../styles/home.css?url";
 import pricingStylesheet from "../styles/pricing.css?url";
+import settingsStylesheet from "../styles/settings.css?url";
 
 import "../styles/activity.css";
+import "../styles/app-shared.css";
 import "../styles/dashboard.css";
 import "../styles/home.css";
 import "../styles/pricing.css";
+import "../styles/settings.css";
 
 export function links() {
   return [
+    { rel: "stylesheet", href: appSharedStylesheet },
     { rel: "stylesheet", href: dashboardStylesheet },
     { rel: "stylesheet", href: activityStylesheet },
     { rel: "stylesheet", href: homeStylesheet },
     { rel: "stylesheet", href: pricingStylesheet },
+    { rel: "stylesheet", href: settingsStylesheet },
   ];
 }
 
@@ -39,13 +45,10 @@ export default function App() {
   return (
     <AppProvider embedded apiKey={apiKey}>
       <s-app-nav>
-        {/* rel="home" marks /app as the parent nav landing page (hidden from menu) */}
-        <s-link
-          href="/app"
-          {...({ rel: "home" } as React.ComponentProps<"s-link">)}
-        >
-          OutStock Manager
-        </s-link>
+        {/* Native anchor so App Bridge receives rel="home" (parent nav → /app). */}
+        <a href="/app" rel="home">
+          Home
+        </a>
         <s-link href="/app/dashboard">Dashboard</s-link>
         <s-link href="/app/collections">Collections</s-link>
         <s-link href="/app/activity">Activity</s-link>

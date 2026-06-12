@@ -86,6 +86,34 @@
   border-bottom: none;
 }
 
+.pricing-benefits-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .pricing-benefits-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pricing-benefit-card {
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--p-color-bg-surface-secondary, #f6f6f7);
+  border: 1px solid var(--p-color-border-secondary, #e3e3e3);
+}
+
+.pricing-faq-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.pricing-faq-item {
+  padding: 16px;
+}
+
 @media (max-width: 768px) {
   .pricing-comparison-scroll {
     overflow-x: auto;

@@ -3,7 +3,10 @@
   "private": true,
   "scripts": {
     "build": "react-router build",
-    "dev": "shopify app dev",
+    "dev": "SHOPIFY_CLI_CLOUDFLARED_PATH=\"$HOME/.local/bin/cloudflared\" shopify app dev --store outstock-test-lionlx2x.myshopify.com --skip-dependencies-installation",
+    "dev:clean": "shopify app dev clean",
+    "dev:localhost": "shopify app dev --store outstock-test-lionlx2x.myshopify.com --skip-dependencies-installation --use-localhost",
+    "dev:reset": "npm run dev:clean && rm -rf .shopify/dev-bundle .shopify/dev-bundle.br",
     "config:link": "shopify app config link",
     "generate": "shopify app generate",
     "deploy": "shopify app deploy",

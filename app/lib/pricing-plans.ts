@@ -1,4 +1,4 @@
-export type PlanId = "FREE" | "STARTER" | "PRO";
+export type PlanId = "FREE" | "GROWTH" | "PRO";
 
 export type PlanDefinition = {
   id: PlanId;
@@ -16,7 +16,7 @@ export type PlanDefinition = {
 export type FeatureComparisonRow = {
   feature: string;
   free: string;
-  starter: string;
+  growth: string;
   pro: string;
 };
 
@@ -31,18 +31,18 @@ export const PRICING_PLANS: PlanDefinition[] = [
     ctaLabel: "Downgrade to Free",
   },
   {
-    id: "STARTER",
-    name: "Starter",
-    price: "$9",
+    id: "GROWTH",
+    name: "Growth",
+    price: "$9.99",
     priceDetail: "per month",
     description: "For growing stores that need reliable automated sorting.",
     limits: { products: 500, collections: 25 },
-    ctaLabel: "Upgrade to Starter",
+    ctaLabel: "Upgrade to Growth",
   },
   {
     id: "PRO",
     name: "Pro",
-    price: "$29",
+    price: "$19.99",
     priceDetail: "per month",
     description: "Advanced automation and higher limits for busy stores.",
     limits: { products: null, collections: null },
@@ -54,46 +54,52 @@ export const FEATURE_COMPARISON: FeatureComparisonRow[] = [
   {
     feature: "Products tracked",
     free: "50",
-    starter: "500",
+    growth: "500",
     pro: "Unlimited",
   },
   {
     feature: "Collections managed",
     free: "5",
-    starter: "25",
+    growth: "25",
     pro: "Unlimited",
   },
   {
     feature: "Push sold-out to bottom",
     free: "Yes",
-    starter: "Yes",
+    growth: "Yes",
     pro: "Yes",
   },
   {
     feature: "Restore when back in stock",
     free: "Yes",
-    starter: "Yes",
+    growth: "Yes",
     pro: "Yes",
   },
   {
     feature: "Activity log",
     free: "7 days",
-    starter: "30 days",
+    growth: "30 days",
     pro: "90 days",
   },
   {
     feature: "Collection sync",
     free: "Manual",
-    starter: "Automatic",
+    growth: "Automatic",
     pro: "Automatic",
   },
   {
     feature: "Priority support",
     free: "—",
-    starter: "Email",
+    growth: "Email",
     pro: "Priority",
   },
 ];
+
+const PLAN_RANK: Record<PlanId, number> = {
+  FREE: 0,
+  GROWTH: 1,
+  PRO: 2,
+};
 
 export function getPlanDefinition(planId: PlanId): PlanDefinition {
   return PRICING_PLANS.find((plan) => plan.id === planId) ?? PRICING_PLANS[0];
@@ -109,4 +115,12 @@ export function usagePercent(used: number, limit: number | null): number {
   }
 
   return Math.min(100, Math.round((used / limit) * 100));
+}
+
+export function isPlanUpgrade(from: PlanId, to: PlanId): boolean {
+  return PLAN_RANK[to] > PLAN_RANK[from];
+}
+
+export function isPlanDowngrade(from: PlanId, to: PlanId): boolean {
+  return PLAN_RANK[to] < PLAN_RANK[from];
 }

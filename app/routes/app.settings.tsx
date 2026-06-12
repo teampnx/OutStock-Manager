@@ -159,7 +159,7 @@ export default function SettingsPage() {
 
   if (loadError) {
     return (
-      <s-page heading="Settings">
+      <s-page heading="Settings" inlineSize="large">
         <s-banner tone="critical" heading="Unable to load settings">
           <s-paragraph>{loadError}</s-paragraph>
         </s-banner>
@@ -168,7 +168,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <s-page heading="Settings">
+    <s-page heading="Settings" inlineSize="large">
       <s-button
         slot="primary-action"
         onClick={handleSave}
@@ -185,10 +185,10 @@ export default function SettingsPage() {
       )}
 
       <s-section heading="OutStock Manager">
-        <s-paragraph>
+        <p className="settings-section-lead">
           Control whether the app is active and how sold-out products should be
           handled once inventory sorting is enabled.
-        </s-paragraph>
+        </p>
 
         <s-stack direction="block" gap="base">
           <s-checkbox
@@ -221,23 +221,25 @@ export default function SettingsPage() {
       </s-section>
 
       <s-section heading="Restore position">
-        <s-paragraph>
+        <p className="settings-section-lead">
           Choose where products go when they come back in stock.
-        </s-paragraph>
+        </p>
 
-        <s-stack direction="block" gap="base">
-          <s-checkbox
-            label="Restore to original position"
-            checked={restorePosition === "ORIGINAL"}
+        <s-stack direction="inline" gap="small-100">
+          <s-clickable-chip
+            color={restorePosition === "ORIGINAL" ? "strong" : "base"}
             disabled={restorePositionDisabled}
-            onChange={() => setRestorePosition("ORIGINAL")}
-          />
-          <s-checkbox
-            label="Restore to top of collection"
-            checked={restorePosition === "TOP"}
+            onClick={() => setRestorePosition("ORIGINAL")}
+          >
+            Original position
+          </s-clickable-chip>
+          <s-clickable-chip
+            color={restorePosition === "TOP" ? "strong" : "base"}
             disabled={restorePositionDisabled}
-            onChange={() => setRestorePosition("TOP")}
-          />
+            onClick={() => setRestorePosition("TOP")}
+          >
+            Top of collection
+          </s-clickable-chip>
         </s-stack>
 
         {fieldErrors?.restorePosition && (
@@ -248,11 +250,11 @@ export default function SettingsPage() {
       </s-section>
 
       <s-section heading="Sync sold-out products">
-        <s-paragraph>
+        <p className="settings-section-lead">
           One-time sync for products that were already sold out before automatic
           sorting was enabled. Moves each sold-out product to the bottom of its
           manual collections and preserves original positions for restore.
-        </s-paragraph>
+        </p>
 
         <s-button
           onClick={handleSyncSoldOut}
@@ -275,38 +277,55 @@ export default function SettingsPage() {
             borderRadius="base"
             background="subdued"
           >
-            <s-stack direction="block" gap="small">
-              <s-paragraph>
-                <s-text type="strong">Products scanned: </s-text>
-                {backfillResult.scannedProducts}
-              </s-paragraph>
-              <s-paragraph>
-                <s-text type="strong">Collection memberships processed: </s-text>
-                {backfillResult.scannedMemberships}
-              </s-paragraph>
-              <s-paragraph>
-                <s-text type="strong">Reordered: </s-text>
-                {backfillResult.reordered}
-              </s-paragraph>
-              <s-paragraph>
-                <s-text type="strong">Skipped: </s-text>
-                {backfillResult.skipped}
-              </s-paragraph>
-              <s-paragraph>
-                <s-text type="strong">Failed: </s-text>
-                {backfillResult.failed}
-              </s-paragraph>
-            </s-stack>
+            <div className="settings-result-grid">
+              <div>
+                <p className="settings-result-label">Products scanned</p>
+                <p className="settings-result-value">
+                  {backfillResult.scannedProducts}
+                </p>
+              </div>
+              <div>
+                <p className="settings-result-label">Memberships processed</p>
+                <p className="settings-result-value">
+                  {backfillResult.scannedMemberships}
+                </p>
+              </div>
+              <div>
+                <p className="settings-result-label">Reordered</p>
+                <p className="settings-result-value">{backfillResult.reordered}</p>
+              </div>
+              <div>
+                <p className="settings-result-label">Skipped</p>
+                <p className="settings-result-value">{backfillResult.skipped}</p>
+              </div>
+              <div>
+                <p className="settings-result-label">Failed</p>
+                <p className="settings-result-value">{backfillResult.failed}</p>
+              </div>
+            </div>
           </s-box>
         )}
       </s-section>
 
-      <s-section slot="aside" heading="Note">
-        <s-paragraph>
-          New inventory changes are handled automatically when the app is
-          enabled. Use sync sold-out products to catch up existing sold-out
-          items.
-        </s-paragraph>
+      <s-section slot="aside" heading="Help">
+        <s-stack direction="block" gap="base">
+          <div className="settings-aside-card">
+            <p className="settings-aside-title">Need more capacity?</p>
+            <p className="settings-aside-text">
+              Upgrade your plan to track more products and enable sorting on
+              additional collections.
+            </p>
+            <s-link href="/app/pricing">View pricing</s-link>
+          </div>
+          <div className="settings-aside-card">
+            <p className="settings-aside-title">Automatic vs. one-time sync</p>
+            <p className="settings-aside-text">
+              New inventory changes are handled automatically when the app is
+              enabled. Use sync sold-out products to catch up existing sold-out
+              items.
+            </p>
+          </div>
+        </s-stack>
       </s-section>
     </s-page>
   );

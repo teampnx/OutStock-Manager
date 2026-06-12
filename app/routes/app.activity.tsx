@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
@@ -7,6 +7,9 @@ import type { ActivityFeedItem, ActivityFeedTone } from "../lib/activity-format"
 import { formatDateTime } from "../lib/format-datetime";
 import { listActivityFeedForShop } from "../models/activity-log.server";
 import { authenticate } from "../shopify.server";
+
+const PAGE_SIZE = 20;
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
 
@@ -22,6 +25,7 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
 };
 
 type ActivityFilter = "all" | "syncs" | "reorders" | "restores" | "errors";
+type DateGroup = "Today" | "Yesterday" | "Earlier";
 
 function matchesFilter(entry: ActivityFeedItem, filter: ActivityFilter): boolean {
   switch (filter) {
@@ -36,6 +40,24 @@ function matchesFilter(entry: ActivityFeedItem, filter: ActivityFilter): boolean
     default:
       return true;
   }
+}
+
+function getDateGroup(iso: string): DateGroup {
+  const entryDate = new Date(iso);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const normalized = new Date(entryDate);
+  normalized.setHours(0, 0, 0, 0);
+
+  if (normalized.getTime() === today.getTime()) {
+    return "Today";
+  }
+  if (normalized.getTime() === yesterday.getTime()) {
+    return "Yesterday";
+  }
+  return "Earlier";
 }
 
 function toneIcon(tone: ActivityFeedTone) {
@@ -83,6 +105,14 @@ function categoryBadgeLabel(category: ActivityFeedItem["category"]) {
   }
 }
 
+const FILTER_OPTIONS: { id: ActivityFilter; label: string }[] = [
+  { id: "all", label: "All" },
+  { id: "syncs", label: "Syncs" },
+  { id: "reorders", label: "Reorders" },
+  { id: "restores", label: "Restores" },
+  { id: "errors", label: "Errors" },
+];
+
 function MetricCard({
   label,
   value,
@@ -123,7 +153,10 @@ function ActivityTimelineRow({ entry }: { entry: ActivityFeedItem }) {
 
   return (
     <div className="activity-timeline-row">
-      <s-icon type={icon.type} {...("tone" in icon ? { tone: icon.tone } : { color: icon.color })} />
+      <s-icon
+        type={icon.type}
+        {...("tone" in icon ? { tone: icon.tone } : { color: icon.color })}
+      />
       <div className="activity-timeline-main">
         <s-stack direction="inline" gap="small-100" alignItems="center">
           <p className="activity-timeline-title">{entry.title}</p>
@@ -142,6 +175,7 @@ export default function ActivityPage() {
   const { activity, error } = useLoaderData<typeof loader>();
   const [filter, setFilter] = useState<ActivityFilter>("all");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
 
   const summary = useMemo(
     () => ({
@@ -152,6 +186,25 @@ export default function ActivityPage() {
     }),
     [activity],
   );
+
+  const filterCounts = useMemo(() => {
+    const counts: Record<ActivityFilter, number> = {
+      all: activity.length,
+      syncs: 0,
+      reorders: 0,
+      restores: 0,
+      errors: 0,
+    };
+
+    for (const entry of activity) {
+      if (matchesFilter(entry, "syncs")) counts.syncs += 1;
+      if (matchesFilter(entry, "reorders")) counts.reorders += 1;
+      if (matchesFilter(entry, "restores")) counts.restores += 1;
+      if (matchesFilter(entry, "errors")) counts.errors += 1;
+    }
+
+    return counts;
+  }, [activity]);
 
   const filteredActivity = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -171,6 +224,41 @@ export default function ActivityPage() {
       );
     });
   }, [activity, filter, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredActivity.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * PAGE_SIZE;
+  const pageEnd = pageStart + PAGE_SIZE;
+  const pagedActivity = filteredActivity.slice(pageStart, pageEnd);
+
+  const groupedPagedActivity = useMemo(() => {
+    const groups: { label: DateGroup; entries: ActivityFeedItem[] }[] = [];
+    const order: DateGroup[] = ["Today", "Yesterday", "Earlier"];
+
+    for (const label of order) {
+      const entries = pagedActivity.filter(
+        (entry) => getDateGroup(entry.occurredAt) === label,
+      );
+      if (entries.length > 0) {
+        groups.push({ label, entries });
+      }
+    }
+
+    return groups;
+  }, [pagedActivity]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filter, search]);
+
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
+
+  const rangeStart = filteredActivity.length === 0 ? 0 : pageStart + 1;
+  const rangeEnd = Math.min(pageEnd, filteredActivity.length);
 
   return (
     <s-page heading="Activity Log" inlineSize="large">
@@ -192,13 +280,12 @@ export default function ActivityPage() {
           background="base"
         >
           <s-stack direction="block" gap="small-200">
-            <s-heading>Activity Log</s-heading>
-            <s-paragraph>
-              <s-text color="subdued">
-                Product moves, restores, collection syncs, and inventory changes
-                from your store appear here as they happen.
-              </s-text>
-            </s-paragraph>
+            <p className="page-intro-title">Store activity timeline</p>
+            <p className="page-intro-text">
+              Product moves, restores, collection syncs, and inventory changes
+              from your store appear here as they happen. Filter by type or
+              search to find specific events.
+            </p>
           </s-stack>
         </s-box>
 
@@ -226,36 +313,18 @@ export default function ActivityPage() {
           <s-box padding="base" background="subdued">
             <s-stack direction="block" gap="small">
               <s-stack direction="inline" gap="small-100">
-                <s-clickable-chip
-                  color={filter === "all" ? "strong" : "base"}
-                  onClick={() => setFilter("all")}
-                >
-                  All
-                </s-clickable-chip>
-                <s-clickable-chip
-                  color={filter === "syncs" ? "strong" : "base"}
-                  onClick={() => setFilter("syncs")}
-                >
-                  Syncs
-                </s-clickable-chip>
-                <s-clickable-chip
-                  color={filter === "reorders" ? "strong" : "base"}
-                  onClick={() => setFilter("reorders")}
-                >
-                  Reorders
-                </s-clickable-chip>
-                <s-clickable-chip
-                  color={filter === "restores" ? "strong" : "base"}
-                  onClick={() => setFilter("restores")}
-                >
-                  Restores
-                </s-clickable-chip>
-                <s-clickable-chip
-                  color={filter === "errors" ? "strong" : "base"}
-                  onClick={() => setFilter("errors")}
-                >
-                  Errors
-                </s-clickable-chip>
+                {FILTER_OPTIONS.map((option) => (
+                  <s-clickable-chip
+                    key={option.id}
+                    color={filter === option.id ? "strong" : "base"}
+                    onClick={() => setFilter(option.id)}
+                  >
+                    {option.label}{" "}
+                    <span className="activity-filter-count">
+                      ({filterCounts[option.id]})
+                    </span>
+                  </s-clickable-chip>
+                ))}
               </s-stack>
               <s-search-field
                 label="Search activity"
@@ -284,11 +353,47 @@ export default function ActivityPage() {
                 </s-paragraph>
               </s-box>
             ) : (
-              <div className="activity-timeline">
-                {filteredActivity.map((entry) => (
-                  <ActivityTimelineRow key={entry.id} entry={entry} />
-                ))}
-              </div>
+              <>
+                <div className="activity-timeline">
+                  {groupedPagedActivity.map((group) => (
+                    <div key={group.label}>
+                      <div className="timeline-group-label">{group.label}</div>
+                      {group.entries.map((entry) => (
+                        <ActivityTimelineRow key={entry.id} entry={entry} />
+                      ))}
+                    </div>
+                  ))}
+                </div>
+                {filteredActivity.length > PAGE_SIZE ? (
+                  <div className="pagination-bar">
+                    <p className="pagination-summary">
+                      Showing {rangeStart}–{rangeEnd} of{" "}
+                      {filteredActivity.length.toLocaleString()} events
+                    </p>
+                    <s-stack direction="inline" gap="small-100" alignItems="center">
+                      <s-button
+                        variant="secondary"
+                        icon="chevron-left"
+                        accessibilityLabel="Previous page"
+                        onClick={() => setPage((current) => Math.max(1, current - 1))}
+                        disabled={currentPage <= 1}
+                      />
+                      <s-text>
+                        Page {currentPage} of {totalPages}
+                      </s-text>
+                      <s-button
+                        variant="secondary"
+                        icon="chevron-right"
+                        accessibilityLabel="Next page"
+                        onClick={() =>
+                          setPage((current) => Math.min(totalPages, current + 1))
+                        }
+                        disabled={currentPage >= totalPages}
+                      />
+                    </s-stack>
+                  </div>
+                ) : null}
+              </>
             )}
           </s-box>
         </s-box>

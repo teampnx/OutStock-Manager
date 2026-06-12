@@ -12,6 +12,7 @@ import { Prisma } from "@prisma/client";
 
 import { resetPrismaClient } from "../db.server";
 import { formatStoreDateTime } from "../lib/format-datetime";
+import { PlanLimitError } from "../lib/plan-enforcement.server";
 import { enqueueBackfillSoldOutProducts } from "../models/collection-reorder.server";
 import {
   listCollectionManagementForShop,
@@ -142,7 +143,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         error:
           error instanceof SetCollectionEnabledError
             ? error.message
-            : "Could not update collection status.",
+            : error instanceof PlanLimitError
+              ? error.message
+              : "Could not update collection status.",
       };
     }
   }
@@ -338,8 +341,6 @@ function PushDownStatusSelect({
 
 function CollectionTableRow({
   collection,
-  selected,
-  onSelect,
   onToggle,
   onRetry,
   onPreview,
@@ -348,8 +349,6 @@ function CollectionTableRow({
   optimisticInProgress,
 }: {
   collection: CollectionManagementItem;
-  selected: boolean;
-  onSelect: (collectionId: string, checked: boolean) => void;
   onToggle: (collectionId: string, enabled: boolean) => void;
   onRetry: (collectionId: string) => void;
   onPreview: (collectionId: string) => void;
@@ -363,16 +362,6 @@ function CollectionTableRow({
 
   return (
     <s-table-row clickDelegate={previewLinkId}>
-      <s-table-cell>
-        <s-checkbox
-          label={`Select ${collection.title}`}
-          labelAccessibilityVisibility="exclusive"
-          checked={selected}
-          onChange={(event) =>
-            onSelect(collection.id, event.currentTarget.checked ?? false)
-          }
-        />
-      </s-table-cell>
       <s-table-cell>
         <div className={`${styles.tableCellContent} ${styles.collectionCell}`}>
           <CollectionThumbnail
@@ -445,7 +434,7 @@ function CollectionTableRow({
 }
 
 export default function CollectionsPage() {
-  const { collections, counts, error, errorDetail, hasActiveSortJobs } =
+  const { collections, counts, error, hasActiveSortJobs } =
     useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const previewFetcher = useFetcher<typeof collectionDetailsLoader>();
@@ -455,9 +444,6 @@ export default function CollectionsPage() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [tab, setTab] = useState<CollectionTab>("all");
   const [titleSort, setTitleSort] = useState<TitleSort>("default");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(
-    () => new Set(),
-  );
   const [optimisticSortingIds, setOptimisticSortingIds] = useState<Set<string>>(
     () => new Set(),
   );
@@ -498,39 +484,10 @@ export default function CollectionsPage() {
     return result;
   }, [collections, search, tab, titleSort]);
 
-  const allVisibleSelected =
-    filteredCollections.length > 0 &&
-    filteredCollections.every((collection) => selectedIds.has(collection.id));
-
-  const someVisibleSelected =
-    filteredCollections.some((collection) => selectedIds.has(collection.id)) &&
-    !allVisibleSelected;
-
-  const handleSelect = (collectionId: string, checked: boolean) => {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      if (checked) {
-        next.add(collectionId);
-      } else {
-        next.delete(collectionId);
-      }
-      return next;
-    });
-  };
-
-  const handleSelectAllVisible = (checked: boolean) => {
-    setSelectedIds((current) => {
-      const next = new Set(current);
-      for (const collection of filteredCollections) {
-        if (checked) {
-          next.add(collection.id);
-        } else {
-          next.delete(collection.id);
-        }
-      }
-      return next;
-    });
-  };
+  const manualSortableCount = useMemo(
+    () => collections.filter((collection) => collection.sortOrder === "MANUAL").length,
+    [collections],
+  );
 
   const handleToggle = (collectionId: string, enabled: boolean) => {
     fetcher.submit(
@@ -712,11 +669,6 @@ export default function CollectionsPage() {
       {error && (
         <s-banner tone="critical" heading="Unable to load collections">
           <s-paragraph>{error}</s-paragraph>
-          {errorDetail ? (
-            <s-paragraph>
-              <code>{errorDetail}</code>
-            </s-paragraph>
-          ) : null}
         </s-banner>
       )}
 
@@ -726,12 +678,47 @@ export default function CollectionsPage() {
         </s-banner>
       )}
 
+      <s-stack direction="block" gap="large">
+        <div className={styles.pageIntro}>
+          <s-stack direction="block" gap="small-100">
+            <p className="page-intro-title">Manage collection sorting</p>
+            <p className="page-intro-text">
+              Enable push-down sorting on manual collections to keep sold-out
+              products at the bottom. Preview order, retry failed sorts, and
+              trigger a full sort for all enabled collections.
+            </p>
+          </s-stack>
+        </div>
+
+        {collections.length > 0 ? (
+          <div className={styles.statsBar}>
+            <div className={styles.statCard}>
+              <p className="stat-card-value">{counts.all}</p>
+              <p className="stat-card-label">Total collections</p>
+            </div>
+            <div className={`${styles.statCard} stat-card-accent-success`}>
+              <p className="stat-card-value">{counts.enabled}</p>
+              <p className="stat-card-label">Push down enabled</p>
+            </div>
+            <div className={styles.statCard}>
+              <p className="stat-card-value">{counts.disabled}</p>
+              <p className="stat-card-label">Disabled</p>
+            </div>
+            <div className={`${styles.statCard} stat-card-accent-info`}>
+              <p className="stat-card-value">{manualSortableCount}</p>
+              <p className="stat-card-label">Manual sort eligible</p>
+            </div>
+          </div>
+        ) : null}
+      </s-stack>
+
       <s-section padding="none">
         {collections.length === 0 ? (
           <s-box padding="base" background="subdued">
             <s-paragraph>No collections synced yet.</s-paragraph>
           </s-box>
         ) : (
+          <div className={styles.tableShell}>
           <s-table loading={tableLoading}>
             <s-box slot="filters" padding="small">
               <s-stack direction="block" gap="small-200">
@@ -812,17 +799,6 @@ export default function CollectionsPage() {
               </s-stack>
             </s-box>
             <s-table-header-row>
-              <s-table-header listSlot="labeled">
-                <s-checkbox
-                  label="Select all visible collections"
-                  labelAccessibilityVisibility="exclusive"
-                  checked={allVisibleSelected}
-                  {...(someVisibleSelected ? { indeterminate: true } : {})}
-                  onChange={(event) =>
-                    handleSelectAllVisible(event.currentTarget.checked ?? false)
-                  }
-                />
-              </s-table-header>
               <s-table-header listSlot="primary">Collection</s-table-header>
               <s-table-header listSlot="labeled">
                 Applied sorting rule
@@ -834,7 +810,6 @@ export default function CollectionsPage() {
             <s-table-body>
               {filteredCollections.length === 0 ? (
                 <s-table-row>
-                  <s-table-cell />
                   <s-table-cell>
                     <s-text color="subdued">
                       No collections match your search or filter.
@@ -850,8 +825,6 @@ export default function CollectionsPage() {
                   <CollectionTableRow
                     key={collection.id}
                     collection={collection}
-                    selected={selectedIds.has(collection.id)}
-                    onSelect={handleSelect}
                     onToggle={handleToggle}
                     onRetry={handleRetry}
                     onPreview={handlePreview}
@@ -865,6 +838,7 @@ export default function CollectionsPage() {
               )}
             </s-table-body>
           </s-table>
+          </div>
         )}
       </s-section>
 

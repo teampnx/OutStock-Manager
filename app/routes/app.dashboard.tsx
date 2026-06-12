@@ -193,6 +193,46 @@ function StatusItem({ label, active }: { label: string; active: boolean }) {
   );
 }
 
+function HorizontalBarChart({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: { label: string; value: number; color: string }[];
+}) {
+  const max = Math.max(...rows.map((row) => row.value), 1);
+
+  return (
+    <s-box
+      padding="none"
+      borderWidth="base"
+      borderRadius="large"
+      background="base"
+    >
+      <div className="dashboard-chart-panel">
+        <p className="chart-card-title">{title}</p>
+        <div className="dashboard-chart-rows">
+          {rows.map((row) => (
+            <div key={row.label} className="chart-bar-row">
+              <p className="chart-bar-label">{row.label}</p>
+              <div className="chart-bar-track">
+                <div
+                  className="chart-bar-fill"
+                  style={{
+                    width: `${(row.value / max) * 100}%`,
+                    background: row.color,
+                  }}
+                />
+              </div>
+              <p className="chart-bar-value">{row.value.toLocaleString()}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </s-box>
+  );
+}
+
 function ActivityTimelineItem({ entry }: { entry: ActivityFeedItem }) {
   return (
     <div className="dashboard-timeline-item">
@@ -248,6 +288,21 @@ export default function Dashboard() {
   const heroDescription = isEnabled
     ? "Automatically keeps sold-out products at the bottom of your manual collections."
     : "Enable the app in Settings to start automatic sold-out sorting.";
+
+  const stockHealthPercent =
+    stats.totalTrackedProducts > 0
+      ? Math.round(
+          (stats.inStockProducts / stats.totalTrackedProducts) * 100,
+        )
+      : 0;
+  const soldOutRatePercent =
+    stats.totalTrackedProducts > 0
+      ? Math.round(
+          (stats.soldOutProducts / stats.totalTrackedProducts) * 100,
+        )
+      : 0;
+  const automationTotal =
+    stats.productsMovedToBottom + stats.productsRestored;
 
   return (
     <s-page heading="Dashboard" inlineSize="large">
@@ -313,7 +368,7 @@ export default function Dashboard() {
         </s-box>
 
         {/* Row 2: KPI cards */}
-        <s-grid gap="base" gridTemplateColumns="1fr 1fr 1fr">
+        <s-grid gap="base" gridTemplateColumns="1fr 1fr 1fr 1fr">
           <KpiCard
             label="Tracked Products"
             value={stats.totalTrackedProducts}
@@ -344,7 +399,78 @@ export default function Dashboard() {
             value={stats.productsRestored}
             accent={KPI_ACCENTS.restored}
           />
+          <s-box
+            padding="large"
+            borderWidth="base"
+            borderRadius="large"
+            background="base"
+          >
+            <div
+              className="dashboard-kpi-accent"
+              style={{ borderLeftColor: KPI_ACCENTS.inStock, paddingLeft: 12 }}
+            >
+              <s-stack direction="block" gap="small-100">
+                <p className="dashboard-kpi-value">{stockHealthPercent}%</p>
+                <p className="dashboard-kpi-label">Stock health</p>
+              </s-stack>
+            </div>
+          </s-box>
+          <s-box
+            padding="large"
+            borderWidth="base"
+            borderRadius="large"
+            background="base"
+          >
+            <div
+              className="dashboard-kpi-accent"
+              style={{ borderLeftColor: KPI_ACCENTS.soldOut, paddingLeft: 12 }}
+            >
+              <s-stack direction="block" gap="small-100">
+                <p className="dashboard-kpi-value">{soldOutRatePercent}%</p>
+                <p className="dashboard-kpi-label">Sold-out rate</p>
+              </s-stack>
+            </div>
+          </s-box>
         </s-grid>
+
+        {/* Charts */}
+        <div className="dashboard-charts-grid">
+          <HorizontalBarChart
+            title="Inventory split"
+            rows={[
+              {
+                label: "In stock",
+                value: stats.inStockProducts,
+                color: KPI_ACCENTS.inStock,
+              },
+              {
+                label: "Sold out",
+                value: stats.soldOutProducts,
+                color: KPI_ACCENTS.soldOut,
+              },
+            ]}
+          />
+          <HorizontalBarChart
+            title="Automation activity"
+            rows={[
+              {
+                label: "Moved",
+                value: stats.productsMovedToBottom,
+                color: KPI_ACCENTS.moved,
+              },
+              {
+                label: "Restored",
+                value: stats.productsRestored,
+                color: KPI_ACCENTS.restored,
+              },
+              {
+                label: "Total actions",
+                value: automationTotal,
+                color: KPI_ACCENTS.products,
+              },
+            ]}
+          />
+        </div>
 
         {/* Row 3: Activity + sidebar */}
         <s-grid gap="base" gridTemplateColumns="2fr 1fr" alignItems="start">

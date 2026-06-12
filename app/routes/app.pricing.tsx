@@ -1,21 +1,65 @@
-import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
-import { useLoaderData } from "react-router";
+import type {
+  ActionFunctionArgs,
+  HeadersFunction,
+  LoaderFunctionArgs,
+} from "react-router";
+import { Form, useActionData, useLoaderData, useNavigation } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
+import {
+  BILLING_PLAN_LINE_ITEMS,
+  billingCallbackUrl,
+  isBillingTestMode,
+  planIdToBillingPlanKey,
+  type BillingPlanKey,
+} from "../lib/billing-config";
+import {
+  PRICING_FAQ,
+  UPGRADE_BENEFITS,
+  type UpgradeBenefit,
+} from "../lib/pricing-content";
 import {
   FEATURE_COMPARISON,
   formatPlanLimit,
   getPlanDefinition,
+  isPlanDowngrade,
+  isPlanUpgrade,
   PRICING_PLANS,
   type PlanId,
   usagePercent,
 } from "../lib/pricing-plans";
 import { getDashboardStats } from "../models/activity-log.server";
+import {
+  cancelActiveSubscription,
+  getCurrentSubscription,
+  getShopBillingSnapshot,
+  syncShopBillingFromShopify,
+  type ShopBillingSnapshot,
+} from "../models/billing.server";
+import {
+  formatBillingError,
+  isAuthRedirectResponse,
+  logBillingRequestFailure,
+  logBillingRequestStart,
+} from "../lib/billing-errors.server";
 import { authenticate } from "../shopify.server";
 import { ensureShop } from "../models/shop.server";
 
+function logPricingStepFailure(step: string, shop: string, error: unknown): void {
+  console.error(
+    `[pricing] STEP FAIL ${step} shop=${shop}`,
+    error instanceof Error ? error.message : String(error),
+  );
+  if (error instanceof Error && error.stack) {
+    console.error(`[pricing] STACK ${step} shop=${shop}:`, error.stack);
+  }
+}
+
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { session } = await authenticate.admin(request);
+  let shopDomain = "unknown";
+
+  const url = new URL(request.url);
+  const billingConfirmed = url.searchParams.get("billing") === "confirmed";
 
   let stats = {
     totalTrackedProducts: 0,
@@ -23,48 +67,196 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   };
 
   try {
-    const shop = await ensureShop(session.shop);
+    console.error("[pricing] STEP START authenticate.admin");
+    const { session, billing } = await authenticate.admin(request);
+    shopDomain = session.shop;
+    console.error(`[pricing] STEP OK authenticate.admin shop=${shopDomain}`);
 
-    try {
-      const dashboardStats = await getDashboardStats(session.shop, shop.id);
-      stats = {
-        totalTrackedProducts: dashboardStats.totalTrackedProducts,
-        totalTrackedCollections: dashboardStats.totalTrackedCollections,
-      };
-    } catch (statsError) {
-      console.error(
-        `[pricing] Failed to load usage for ${session.shop}:`,
-        statsError,
-      );
-    }
+    console.error(`[pricing] STEP START ensureShop shop=${shopDomain}`);
+    const shop = await ensureShop(session.shop);
+    console.error(
+      `[pricing] STEP OK ensureShop shop=${shopDomain} shopId=${shop.id} plan=${shop.plan}`,
+    );
+
+    console.error(`[pricing] STEP START getCurrentSubscription shop=${shopDomain}`);
+    const currentSubscription = await getCurrentSubscription(session.shop);
+    console.error(
+      `[pricing] STEP OK getCurrentSubscription shop=${shopDomain}`,
+      JSON.stringify(currentSubscription),
+    );
+
+    console.error(`[pricing] STEP START syncShopBillingFromShopify shop=${shopDomain}`);
+    const billingSnapshot = await syncShopBillingFromShopify(session.shop, billing);
+    console.error(
+      `[pricing] STEP OK syncShopBillingFromShopify shop=${shopDomain}`,
+      JSON.stringify(billingSnapshot),
+    );
+
+    console.error(`[pricing] STEP START usage calculation shop=${shopDomain}`);
+    const dashboardStats = await getDashboardStats(session.shop, shop.id);
+    stats = {
+      totalTrackedProducts: dashboardStats.totalTrackedProducts,
+      totalTrackedCollections: dashboardStats.totalTrackedCollections,
+    };
+    console.error(
+      `[pricing] STEP OK usage calculation shop=${shopDomain}`,
+      JSON.stringify(stats),
+    );
 
     return {
       shopName: shop.shopName ?? shop.shopDomain,
-      plan: shop.plan as PlanId,
+      plan: billingSnapshot.plan,
+      billing: billingSnapshot,
+      billingTestMode: isBillingTestMode(),
+      billingConfirmed,
       stats,
+      billingWarning: null,
       error: null,
     };
   } catch (error) {
-    console.error(`[pricing] Failed to load pricing for ${session.shop}:`, error);
+    if (isAuthRedirectResponse(error)) {
+      console.error(
+        `[pricing] STEP REDIRECT authenticate/admin shop=${shopDomain} status=${error.status}`,
+      );
+      throw error;
+    }
+
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[pricing] LOADER CAUGHT EXCEPTION shop=${shopDomain}: ${message}`);
+    logPricingStepFailure("loader", shopDomain, error);
+
+    let billingSnapshot: ShopBillingSnapshot = {
+      plan: "FREE",
+      subscriptionStatus: null,
+      shopifySubscriptionId: null,
+      isTest: isBillingTestMode(),
+      currentPeriodEnd: null,
+      hasActivePayment: false,
+    };
+
+    try {
+      billingSnapshot = await getShopBillingSnapshot(shopDomain);
+    } catch (snapshotError) {
+      logPricingStepFailure("getShopBillingSnapshot.fallback", shopDomain, snapshotError);
+    }
 
     return {
-      shopName: session.shop,
-      plan: "FREE" as const,
+      shopName: shopDomain,
+      plan: billingSnapshot.plan,
+      billing: billingSnapshot,
+      billingTestMode: isBillingTestMode(),
+      billingConfirmed,
       stats,
-      error: "Could not load pricing information. Please refresh the page.",
+      billingWarning: null,
+      error: message,
     };
   }
+};
+
+export const action = async ({ request }: ActionFunctionArgs) => {
+  const { billing, session } = await authenticate.admin(request);
+  const formData = await request.formData();
+  const intent = String(formData.get("intent") ?? "");
+  const targetPlan = String(formData.get("plan") ?? "") as PlanId;
+
+  if (intent === "change-plan") {
+    if (targetPlan === "FREE") {
+      try {
+        await cancelActiveSubscription(session.shop, billing);
+        return { success: true as const, message: "Downgraded to Free plan." };
+      } catch (error) {
+        console.error(
+          `[pricing] Failed to downgrade ${session.shop} to Free:`,
+          error,
+        );
+        return {
+          success: false as const,
+          error: "Could not cancel your subscription. Please try again.",
+        };
+      }
+    }
+
+    const billingPlanKey = planIdToBillingPlanKey(targetPlan);
+    if (!billingPlanKey) {
+      return { success: false as const, error: "Invalid plan selected." };
+    }
+
+    const lineItem = BILLING_PLAN_LINE_ITEMS[billingPlanKey as BillingPlanKey];
+    const isTest = isBillingTestMode();
+    const returnUrl = billingCallbackUrl(targetPlan);
+    const appUrl = process.env.SHOPIFY_APP_URL ?? "";
+
+    logBillingRequestStart(session.shop, {
+      plan: billingPlanKey,
+      amount: lineItem.amount,
+      currencyCode: lineItem.currencyCode,
+      interval: lineItem.interval,
+      isTest,
+      returnUrl,
+      appUrl,
+    });
+
+    try {
+      return await billing.request({
+        plan: billingPlanKey,
+        isTest,
+        returnUrl,
+      });
+    } catch (error) {
+      if (isAuthRedirectResponse(error)) {
+        throw error;
+      }
+
+      logBillingRequestFailure(session.shop, error);
+
+      const shopifyMessage = formatBillingError(error);
+      const isPublicDistributionError = shopifyMessage.includes(
+        "public distribution",
+      );
+
+      return {
+        success: false as const,
+        error: isPublicDistributionError
+          ? `${shopifyMessage} Enable public (Shopify App Store) distribution for this app in Shopify Partners → Apps → OutStock Manager → Distribution. The app can remain in draft; it does not need to be published.`
+          : shopifyMessage || "Billing request failed.",
+      };
+    }
+  }
+
+  if (intent === "sync-billing") {
+    try {
+      await syncShopBillingFromShopify(session.shop, billing);
+      return { success: true as const, message: "Subscription status updated." };
+    } catch (error) {
+      console.error(`[pricing] Failed to sync billing for ${session.shop}:`, error);
+      return {
+        success: false as const,
+        error: "Could not refresh subscription status.",
+      };
+    }
+  }
+
+  return { success: false as const, error: "Unknown action." };
 };
 
 function planBadgeTone(planId: PlanId) {
   switch (planId) {
     case "PRO":
       return "success" as const;
-    case "STARTER":
+    case "GROWTH":
       return "info" as const;
     default:
       return "auto" as const;
   }
+}
+
+function subscriptionStatusLabel(
+  status: ShopBillingSnapshot["subscriptionStatus"],
+): string {
+  if (!status) {
+    return "No active subscription";
+  }
+  return status.charAt(0) + status.slice(1).toLowerCase();
 }
 
 function progressFillClass(percent: number) {
@@ -75,6 +267,21 @@ function progressFillClass(percent: number) {
     return "pricing-progress-fill pricing-progress-fill-warning";
   }
   return "pricing-progress-fill";
+}
+
+function benefitIcon(type: UpgradeBenefit["icon"]) {
+  switch (type) {
+    case "automation":
+      return "automation" as const;
+    case "analytics":
+      return "chart-horizontal" as const;
+    case "support":
+      return "chat" as const;
+    case "scale":
+      return "product-add" as const;
+    default:
+      return "check-circle" as const;
+  }
 }
 
 function UsageMeter({
@@ -118,15 +325,18 @@ function PlanCard({
   plan: (typeof PRICING_PLANS)[number];
   currentPlanId: PlanId;
 }) {
+  const navigation = useNavigation();
   const isCurrent = plan.id === currentPlanId;
-  const isUpgrade =
-    (currentPlanId === "FREE" && plan.id !== "FREE") ||
-    (currentPlanId === "STARTER" && plan.id === "PRO");
+  const isUpgrade = isPlanUpgrade(currentPlanId, plan.id);
+  const isDowngrade = isPlanDowngrade(currentPlanId, plan.id);
+  const isSubmitting =
+    navigation.state === "submitting" &&
+    navigation.formData?.get("plan") === plan.id;
 
   return (
     <div
       className={
-        plan.id === "STARTER" ? "pricing-plan-card-highlight" : undefined
+        plan.id === "GROWTH" ? "pricing-plan-card-highlight" : undefined
       }
     >
       <s-box
@@ -136,44 +346,51 @@ function PlanCard({
         background="base"
       >
         <s-stack direction="block" gap="base">
-        <s-stack direction="block" gap="small-100">
-          <s-stack direction="inline" gap="small-100" alignItems="center">
-            <s-heading>{plan.name}</s-heading>
-            {isCurrent ? <s-badge tone="success">Current plan</s-badge> : null}
-            {plan.id === "STARTER" && !isCurrent ? (
-              <s-badge tone="info">Popular</s-badge>
-            ) : null}
+          <s-stack direction="block" gap="small-100">
+            <s-stack direction="inline" gap="small-100" alignItems="center">
+              <s-heading>{plan.name}</s-heading>
+              {isCurrent ? <s-badge tone="success">Current plan</s-badge> : null}
+              {plan.id === "GROWTH" && !isCurrent ? (
+                <s-badge tone="info">Popular</s-badge>
+              ) : null}
+            </s-stack>
+            <s-paragraph>
+              <s-text color="subdued">{plan.description}</s-text>
+            </s-paragraph>
           </s-stack>
-          <s-paragraph>
-            <s-text color="subdued">{plan.description}</s-text>
-          </s-paragraph>
-        </s-stack>
 
-        <s-stack direction="block" gap="small-100">
-          <p className="pricing-plan-price">{plan.price}</p>
-          <p className="pricing-plan-price-detail">{plan.priceDetail}</p>
-        </s-stack>
+          <s-stack direction="block" gap="small-100">
+            <p className="pricing-plan-price">{plan.price}</p>
+            <p className="pricing-plan-price-detail">{plan.priceDetail}</p>
+          </s-stack>
 
-        <s-stack direction="block" gap="small-100">
-          <s-text>
-            <s-text type="strong">Products: </s-text>
-            {formatPlanLimit(plan.limits.products)}
-          </s-text>
-          <s-text>
-            <s-text type="strong">Collections: </s-text>
-            {formatPlanLimit(plan.limits.collections)}
-          </s-text>
-        </s-stack>
+          <s-stack direction="block" gap="small-100">
+            <s-text>
+              <s-text type="strong">Products: </s-text>
+              {formatPlanLimit(plan.limits.products)}
+            </s-text>
+            <s-text>
+              <s-text type="strong">Collections: </s-text>
+              {formatPlanLimit(plan.limits.collections)}
+            </s-text>
+          </s-stack>
 
-        {isCurrent ? (
-          <s-button disabled>Current plan</s-button>
-        ) : isUpgrade ? (
-          <s-button variant="primary">{plan.ctaLabel}</s-button>
-        ) : (
-          <s-button variant="secondary" disabled>
-            {plan.ctaLabel}
-          </s-button>
-        )}
+          {isCurrent ? (
+            <s-button disabled>Current plan</s-button>
+          ) : (
+            <Form method="post">
+              <input type="hidden" name="intent" value="change-plan" />
+              <input type="hidden" name="plan" value={plan.id} />
+              <s-button
+                type="submit"
+                variant={isUpgrade ? "primary" : "secondary"}
+                {...(isSubmitting ? { loading: true } : {})}
+                disabled={isSubmitting}
+              >
+                {isDowngrade ? plan.ctaLabel : plan.ctaLabel}
+              </s-button>
+            </Form>
+          )}
         </s-stack>
       </s-box>
     </div>
@@ -181,7 +398,17 @@ function PlanCard({
 }
 
 export default function PricingPage() {
-  const { shopName, plan, stats, error } = useLoaderData<typeof loader>();
+  const {
+    shopName,
+    plan,
+    billing,
+    billingTestMode,
+    billingConfirmed,
+    billingWarning,
+    stats,
+    error,
+  } = useLoaderData<typeof loader>();
+  const actionData = useActionData<typeof action>();
   const currentPlan = getPlanDefinition(plan);
 
   return (
@@ -190,11 +417,38 @@ export default function PricingPage() {
         Settings
       </s-link>
 
-      {error && (
+      {billingWarning ? (
+        <s-banner tone="warning" heading="Billing status unavailable">
+          <s-paragraph>{billingWarning}</s-paragraph>
+        </s-banner>
+      ) : null}
+
+      {error ? (
         <s-banner tone="critical" heading="Unable to load pricing">
           <s-paragraph>{error}</s-paragraph>
         </s-banner>
-      )}
+      ) : null}
+
+      {actionData?.success === false && actionData.error ? (
+        <s-banner tone="critical" heading="Billing action failed">
+          <s-paragraph>{actionData.error}</s-paragraph>
+        </s-banner>
+      ) : null}
+
+      {actionData?.success === true && actionData.message ? (
+        <s-banner tone="success" heading="Billing updated">
+          <s-paragraph>{actionData.message}</s-paragraph>
+        </s-banner>
+      ) : null}
+
+      {billingConfirmed ? (
+        <s-banner tone="success" heading="Subscription approved">
+          <s-paragraph>
+            Your plan change was approved by Shopify. Your current plan is now{" "}
+            {currentPlan.name}.
+          </s-paragraph>
+        </s-banner>
+      ) : null}
 
       <s-stack direction="block" gap="large">
         <s-box
@@ -212,25 +466,38 @@ export default function PricingPage() {
               <s-stack direction="inline" gap="small-100" alignItems="center">
                 <s-heading>Current plan</s-heading>
                 <s-badge tone={planBadgeTone(plan)}>{currentPlan.name}</s-badge>
+                {billingTestMode ? (
+                  <s-badge tone="warning">Test billing</s-badge>
+                ) : null}
               </s-stack>
               <s-paragraph>
                 <s-text color="subdued">
-                  {shopName} is on the {currentPlan.name} plan. Upgrade anytime
-                  when you need higher limits.
+                  {shopName} is on the {currentPlan.name} plan.
+                  {billing.hasActivePayment
+                    ? ` Subscription status: ${subscriptionStatusLabel(billing.subscriptionStatus)}.`
+                    : " No paid subscription is active."}
                 </s-text>
               </s-paragraph>
-              <s-paragraph>
-                <s-text color="subdued">
-                  Billing integration is coming soon. Upgrade buttons are
-                  preview-only for now.
-                </s-text>
-              </s-paragraph>
+              {billing.currentPeriodEnd ? (
+                <s-paragraph>
+                  <s-text color="subdued">
+                    Current period ends{" "}
+                    {new Date(billing.currentPeriodEnd).toLocaleDateString()}.
+                  </s-text>
+                </s-paragraph>
+              ) : null}
             </s-stack>
             <s-stack direction="block" gap="small-100" alignItems="end">
               <p className="pricing-plan-price">{currentPlan.price}</p>
               <p className="pricing-plan-price-detail">
                 {currentPlan.priceDetail}
               </p>
+              <Form method="post">
+                <input type="hidden" name="intent" value="sync-billing" />
+                <s-button type="submit" variant="tertiary">
+                  Refresh status
+                </s-button>
+              </Form>
             </s-stack>
           </s-grid>
         </s-box>
@@ -264,7 +531,8 @@ export default function PricingPage() {
           <s-heading>Plans</s-heading>
           <s-paragraph>
             <s-text color="subdued">
-              Choose the plan that fits your catalog size and automation needs.
+              Choose a plan to upgrade or downgrade. Paid plans open Shopify&apos;s
+              billing approval page to confirm your subscription.
             </s-text>
           </s-paragraph>
           <s-grid gap="base" gridTemplateColumns="1fr 1fr 1fr">
@@ -285,6 +553,32 @@ export default function PricingPage() {
           background="base"
         >
           <s-box padding="base" background="subdued">
+            <s-text type="strong">Why upgrade?</s-text>
+          </s-box>
+          <s-box padding="base">
+            <div className="pricing-benefits-grid">
+              {UPGRADE_BENEFITS.map((benefit) => (
+                <div key={benefit.title} className="pricing-benefit-card">
+                  <s-stack direction="inline" gap="small-100" alignItems="start">
+                    <s-icon type={benefitIcon(benefit.icon)} tone="info" />
+                    <div>
+                      <p className="benefit-card-title">{benefit.title}</p>
+                      <p className="benefit-card-text">{benefit.description}</p>
+                    </div>
+                  </s-stack>
+                </div>
+              ))}
+            </div>
+          </s-box>
+        </s-box>
+
+        <s-box
+          padding="none"
+          borderWidth="base"
+          borderRadius="large"
+          background="base"
+        >
+          <s-box padding="base" background="subdued">
             <s-text type="strong">Feature comparison</s-text>
           </s-box>
           <s-box padding="base">
@@ -294,7 +588,7 @@ export default function PricingPage() {
                   <tr>
                     <th scope="col">Feature</th>
                     <th scope="col">Free</th>
-                    <th scope="col">Starter</th>
+                    <th scope="col">Growth</th>
                     <th scope="col">Pro</th>
                   </tr>
                 </thead>
@@ -303,7 +597,7 @@ export default function PricingPage() {
                     <tr key={row.feature}>
                       <th scope="row">{row.feature}</th>
                       <td>{row.free}</td>
-                      <td>{row.starter}</td>
+                      <td>{row.growth}</td>
                       <td>{row.pro}</td>
                     </tr>
                   ))}
@@ -311,6 +605,25 @@ export default function PricingPage() {
               </table>
             </div>
           </s-box>
+        </s-box>
+
+        <s-box
+          padding="none"
+          borderWidth="base"
+          borderRadius="large"
+          background="base"
+        >
+          <s-box padding="base" background="subdued">
+            <s-text type="strong">Frequently asked questions</s-text>
+          </s-box>
+          <div className="pricing-faq-list">
+            {PRICING_FAQ.map((item) => (
+              <div key={item.question} className="pricing-faq-item faq-item">
+                <p className="faq-question">{item.question}</p>
+                <p className="faq-answer">{item.answer}</p>
+              </div>
+            ))}
+          </div>
         </s-box>
       </s-stack>
     </s-page>

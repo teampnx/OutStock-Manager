@@ -20,6 +20,7 @@ import {
   toCollectionGid,
   updateCollectionSortOrderOnShopify,
 } from "../services/shopify-collections.server";
+import { assertWithinCollectionLimit } from "../lib/plan-enforcement.server";
 import { ensureShop } from "./shop.server";
 
 type AdminGraphql = {
@@ -342,6 +343,10 @@ export async function setCollectionEnabled(
 
   if (!existing) {
     return null;
+  }
+
+  if (enabled && !existing.enabled) {
+    await assertWithinCollectionLimit(shopDomain, 1);
   }
 
   const snapshot = await fetchCollectionFromShopify(
