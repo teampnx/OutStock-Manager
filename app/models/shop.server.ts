@@ -28,10 +28,11 @@ export async function fetchShopName(
 async function normalizeLegacyShopPlan(shopDomain: string): Promise<void> {
   // Prisma enum no longer includes STARTER (renamed to GROWTH). Raw SQL avoids
   // read failures when legacy rows still store the old value.
+  // Cast to text so legacy STARTER values (pre-enum rename) can be matched on PostgreSQL.
   await prisma.$executeRaw`
     UPDATE "Shop"
     SET "plan" = 'GROWTH'
-    WHERE "shopDomain" = ${shopDomain} AND "plan" = 'STARTER'
+    WHERE "shopDomain" = ${shopDomain} AND "plan"::text = 'STARTER'
   `;
 }
 

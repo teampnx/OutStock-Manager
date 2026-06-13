@@ -3,10 +3,21 @@ import type { HeadersFunction, LoaderFunctionArgs } from "react-router";
 import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
+import {
+  APP_NAME,
+  APP_NAME_SHORT,
+  APP_TAGLINE,
+  SUPPORT_EMAIL,
+  pageTitle,
+} from "../lib/branding";
 import { getDashboardStats } from "../models/activity-log.server";
 import { listCollectionManagementForShop } from "../models/collection-management.server";
 import { authenticate } from "../shopify.server";
 import { ensureShop } from "../models/shop.server";
+
+export function meta() {
+  return [{ title: pageTitle("Home") }];
+}
 
 type SetupStep = {
   id: string;
@@ -97,17 +108,12 @@ function PanelCard({
   children: ReactNode;
 }) {
   return (
-    <s-box
-      padding="none"
-      borderWidth="base"
-      borderRadius="large"
-      background="base"
-    >
+    <div className="curatify-section-card">
       <div className="home-panel-header">
         <p className="home-panel-title">{title}</p>
       </div>
       {children}
-    </s-box>
+    </div>
   );
 }
 
@@ -151,17 +157,12 @@ function SetupStepItem({
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <s-box
-      padding="large"
-      borderWidth="base"
-      borderRadius="large"
-      background="base"
-    >
+    <div className="curatify-kpi-card">
       <s-stack direction="block" gap="small-100">
         <p className="home-stat-value">{value.toLocaleString()}</p>
         <p className="home-stat-label">{label}</p>
       </s-stack>
-    </s-box>
+    </div>
   );
 }
 
@@ -247,7 +248,7 @@ export default function Onboarding() {
   const onboardingComplete = completedSteps === totalSteps;
 
   return (
-    <s-page heading="OutStock Manager" inlineSize="large">
+    <s-page heading={APP_NAME} inlineSize="large">
       <s-link slot="primary-action" href="/app/dashboard">
         View Dashboard
       </s-link>
@@ -259,21 +260,17 @@ export default function Onboarding() {
       )}
 
       <s-stack direction="block" gap="large">
-        <s-box
-          padding="large"
-          borderWidth="base"
-          borderRadius="large"
-          background="base"
-        >
+        <div className="curatify-hero">
           <s-stack direction="block" gap="small-200">
-            <p className="home-hero-title">Welcome to OutStock Manager</p>
-            <p className="home-hero-subtitle">
+            <p className="home-hero-title">{APP_NAME_SHORT}</p>
+            <p className="home-hero-subtitle">{APP_TAGLINE}</p>
+            <p className="home-hero-description">
               {onboardingComplete
                 ? `${shopName} is set up and sorting sold-out products automatically.`
                 : `Finish setup for ${shopName} to start pushing sold-out products to the bottom of your collections.`}
             </p>
           </s-stack>
-        </s-box>
+        </div>
 
         <s-grid
           gridTemplateColumns="repeat(auto-fit, minmax(320px, 1fr))"
@@ -388,7 +385,7 @@ export default function Onboarding() {
           <PanelCard title="Help &amp; support">
             <s-box padding="base">
               <HelpLink
-                href="mailto:support@outstockmanager.app"
+                href={`mailto:${SUPPORT_EMAIL}`}
                 icon="email"
                 label="Contact support"
                 description="Get help from our team within one business day."
@@ -430,7 +427,7 @@ export default function Onboarding() {
                     <s-icon type="star-filled" tone="warning" />
                     <s-icon type="star-filled" tone="warning" />
                   </div>
-                  <s-text type="strong">Enjoying OutStock Manager?</s-text>
+                  <s-text type="strong">Enjoying {APP_NAME_SHORT}?</s-text>
                 </s-stack>
                 <s-text color="subdued">
                   Your store is fully set up. A quick review on the Shopify App

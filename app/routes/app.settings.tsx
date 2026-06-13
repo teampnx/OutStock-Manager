@@ -9,6 +9,7 @@ import { useAppBridge } from "@shopify/app-bridge-react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import type { RestorePosition } from "@prisma/client";
 
+import { APP_NAME_SHORT, APP_TAGLINE, pageTitle } from "../lib/branding";
 import { authenticate } from "../shopify.server";
 import {
   backfillSoldOutProductsForShop,
@@ -19,6 +20,10 @@ import {
   parseSettingsFormData,
   updateSettingsForShop,
 } from "../models/settings.server";
+
+export function meta() {
+  return [{ title: pageTitle("Settings") }];
+}
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -184,16 +189,21 @@ export default function SettingsPage() {
         </s-banner>
       )}
 
-      <s-section heading="OutStock Manager">
+      <div className="settings-page-hero">
+        <p className="settings-page-title">{APP_NAME_SHORT}</p>
+        <p className="settings-page-subtitle">{APP_TAGLINE}</p>
+      </div>
+
+      <s-section heading={APP_NAME_SHORT}>
         <p className="settings-section-lead">
-          Control whether the app is active and how sold-out products should be
-          handled once inventory sorting is enabled.
+          Control whether {APP_NAME_SHORT} is active and how sold-out products
+          should be handled once inventory sorting is enabled.
         </p>
 
         <s-stack direction="block" gap="base">
           <s-checkbox
-            label="Enable OutStock Manager"
-            details="Turn on OutStock Manager for this store."
+            label={`Enable ${APP_NAME_SHORT}`}
+            details={`Turn on ${APP_NAME_SHORT} for this store.`}
             checked={enabled}
             onChange={(event) => setEnabled(event.currentTarget.checked ?? false)}
           />

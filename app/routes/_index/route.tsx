@@ -1,9 +1,17 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { redirect, Form, useLoaderData } from "react-router";
 
+import { APP_DESCRIPTION, APP_NAME, APP_NAME_SHORT } from "../../lib/branding";
 import { login } from "../../shopify.server";
 
 import styles from "./styles.module.css";
+
+export function meta() {
+  return [
+    { title: APP_NAME },
+    { name: "description", content: APP_DESCRIPTION },
+  ];
+}
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const url = new URL(request.url);
@@ -21,10 +29,8 @@ export default function App() {
   return (
     <div className={styles.index}>
       <div className={styles.content}>
-        <h1 className={styles.heading}>A short heading about [your app]</h1>
-        <p className={styles.text}>
-          A tagline about [your app] that describes your value proposition.
-        </p>
+        <h1 className={styles.heading}>{APP_NAME}</h1>
+        <p className={styles.text}>{APP_DESCRIPTION}</p>
         {showForm && (
           <Form className={styles.form} method="post" action="/auth/login">
             <label className={styles.label}>
@@ -33,22 +39,22 @@ export default function App() {
               <span>e.g: my-shop-domain.myshopify.com</span>
             </label>
             <button className={styles.button} type="submit">
-              Log in
+              Log in to {APP_NAME_SHORT}
             </button>
           </Form>
         )}
         <ul className={styles.list}>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Automatic sold-out sorting</strong>. Push sold-out products to
+            the bottom of your manual collections without manual reordering.
           </li>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Smart restore</strong>. Return products to their original or
+            top position when inventory is available again.
           </li>
           <li>
-            <strong>Product feature</strong>. Some detail about your feature and
-            its benefit to your customer.
+            <strong>Collection control</strong>. Enable push-down per collection
+            and monitor activity from a single dashboard.
           </li>
         </ul>
       </div>

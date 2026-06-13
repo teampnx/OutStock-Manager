@@ -1,10 +1,10 @@
-# OutStock Manager — Shopify App Store Submission Checklist
+# Curatify Collection Sort & Merch — Shopify App Store Submission Checklist
 
 Use this checklist before submitting for Shopify App Store review.
 
 ## Partners & distribution
 
-- [ ] **Public distribution enabled** — Partners → Apps → OutStock Manager → Distribution → Shopify App Store (can remain draft/unlisted). Required for Billing API.
+- [ ] **Public distribution enabled** — Partners → Apps → Curatify Collection Sort & Merch → Distribution → Shopify App Store (can remain draft/unlisted). Required for Billing API.
 - [ ] **App URL** — Production `SHOPIFY_APP_URL` matches the deployed app host.
 - [ ] **Allowed redirection URL(s)** — Callback and billing return URLs registered in Partners.
 - [ ] **API scopes** — Documented and minimal; match `shopify.app.toml` and privacy policy.
@@ -29,7 +29,7 @@ Use this checklist before submitting for Shopify App Store review.
 
 ## Functional smoke test
 
-- [ ] Enable OutStock Manager in Settings and save.
+- [ ] Enable Curatify in Settings and save.
 - [ ] Enable push-down on a **manual** collection; confirm sort runs.
 - [ ] Mark a product sold out; confirm it moves to bottom and Activity logs the event.
 - [ ] Restock product; confirm restore behavior matches Settings (original vs. top).

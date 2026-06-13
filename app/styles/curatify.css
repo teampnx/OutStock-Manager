@@ -1,0 +1,317 @@
+/* Curatify global app shell & shared premium components */
+
+.curatify-app {
+  min-height: 100%;
+  background: var(--c-bg);
+  color: var(--c-ink);
+  font-family: var(--c-font-body);
+}
+
+/* ── Brand wordmark ── */
+
+.curatify-wordmark {
+  margin: 0;
+  font-family: var(--c-font-display);
+  font-size: var(--c-text-hero);
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--c-ink);
+  text-transform: lowercase;
+}
+
+.curatify-tagline {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--c-font-mono);
+  font-size: var(--c-text-label);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--c-primary);
+}
+
+.curatify-mono-label {
+  font-family: var(--c-font-mono);
+  font-size: var(--c-text-label);
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--c-muted);
+}
+
+/* ── Hero ── */
+
+.curatify-hero {
+  padding: var(--c-gap-xl);
+  border-radius: var(--c-radius-xl);
+  background: linear-gradient(
+    135deg,
+    var(--c-surface) 0%,
+    var(--c-purple-light) 55%,
+    var(--c-surface-tinted) 100%
+  );
+  border: 1px solid var(--c-border);
+  box-shadow: var(--c-shadow-md);
+}
+
+.curatify-hero-accent {
+  display: inline-block;
+  width: 4px;
+  height: 28px;
+  margin-right: 12px;
+  border-radius: var(--c-radius-pill);
+  background: linear-gradient(180deg, var(--c-primary), var(--c-purple-mid));
+  vertical-align: middle;
+}
+
+.curatify-page-hero {
+  padding: var(--c-gap-lg) var(--c-gap-xl);
+  border-radius: var(--c-radius-lg);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  box-shadow: var(--c-shadow-sm);
+}
+
+/* ── KPI & stat cards ── */
+
+.curatify-kpi-card {
+  padding: var(--c-gap-lg);
+  border-radius: var(--c-radius-lg);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  box-shadow: var(--c-shadow-sm);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.curatify-kpi-card:hover {
+  border-color: var(--c-border-strong);
+  box-shadow: var(--c-shadow-md);
+}
+
+.curatify-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--c-gap-md);
+}
+
+@media (max-width: 900px) {
+  .curatify-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.curatify-stat-card {
+  padding: 14px var(--c-gap-lg);
+  border-radius: var(--c-radius-md);
+  background: var(--c-surface-tinted);
+  border: 1px solid var(--c-border);
+}
+
+.curatify-stat-card--accent {
+  background: linear-gradient(
+    135deg,
+    var(--c-purple-light) 0%,
+    var(--c-surface) 100%
+  );
+  border-color: var(--c-border-strong);
+}
+
+/* ── Section cards ── */
+
+.curatify-section-card {
+  overflow: hidden;
+  border-radius: var(--c-radius-lg);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  box-shadow: var(--c-shadow-sm);
+}
+
+.curatify-section-header {
+  padding: 12px var(--c-gap-lg);
+  background: var(--c-surface-tinted);
+  border-bottom: 1px solid var(--c-border);
+}
+
+.curatify-section-title {
+  margin: 0;
+  font-family: var(--c-font-display);
+  font-size: var(--c-text-body);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--c-ink);
+}
+
+/* ── Purple banner (pinning upsell etc.) ── */
+
+.curatify-banner {
+  padding: var(--c-gap-lg) var(--c-gap-xl);
+  margin-bottom: var(--c-gap-lg);
+  border-radius: var(--c-radius-md);
+  background: linear-gradient(
+    135deg,
+    var(--c-purple-light) 0%,
+    var(--c-surface) 100%
+  );
+  border: 1px solid var(--c-border-strong);
+}
+
+.curatify-banner-title {
+  margin: 0 0 6px;
+  font-family: var(--c-font-display);
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--c-purple-dark);
+}
+
+.curatify-banner-text {
+  margin: 0;
+  font-size: var(--c-text-body);
+  line-height: 1.55;
+  color: var(--c-muted);
+}
+
+/* ── Empty state ── */
+
+.curatify-empty {
+  padding: var(--c-gap-xl);
+  text-align: center;
+  border-radius: var(--c-radius-md);
+  background: var(--c-surface-tinted);
+  border: 1px dashed var(--c-border-strong);
+}
+
+.curatify-empty-title {
+  margin: 0 0 6px;
+  font-family: var(--c-font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--c-ink);
+}
+
+.curatify-empty-text {
+  margin: 0;
+  font-size: var(--c-text-body);
+  line-height: 1.5;
+  color: var(--c-muted);
+}
+
+/* ── Responsive grids ── */
+
+.curatify-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--c-gap-md);
+}
+
+.curatify-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--c-gap-md);
+}
+
+.curatify-pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--c-gap-md);
+  align-items: stretch;
+}
+
+.curatify-two-col-layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--c-gap-md);
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .curatify-kpi-grid,
+  .curatify-metric-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .curatify-pricing-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .curatify-two-col-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .curatify-kpi-grid,
+  .curatify-metric-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Interactive polish ── */
+
+.curatify-stat-card,
+.collections-stat-card,
+.pinning-stat-card,
+.pinning-upsell-card,
+.pricing-benefit-card,
+.settings-aside-card {
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.collections-stat-card:hover,
+.pinning-stat-card:hover,
+.pinning-upsell-card:hover,
+.pricing-benefit-card:hover,
+.activity-metric-card:hover,
+.curatify-kpi-card:hover {
+  border-color: var(--c-border-strong);
+  box-shadow: var(--c-shadow-sm);
+}
+
+.dashboard-timeline-item:hover,
+.activity-timeline-row:hover {
+  background: var(--c-purple-light);
+}
+
+.collections-title-link:focus-visible,
+.home-help-link:focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Navigation — hover and active route */
+.curatify-app s-app-nav a:hover,
+.curatify-app s-app-nav s-link:hover {
+  color: var(--c-primary);
+}
+
+/* ── Pricing plan wrappers — remove double border from inner Polaris box ── */
+
+.pricing-plan-card-current,
+.pricing-plan-card-pro {
+  height: 100%;
+}
+
+.pricing-plan-card-current > s-box,
+.pricing-plan-card-pro > s-box,
+.pricing-plan-card-current s-box,
+.pricing-plan-card-pro s-box {
+  border: none !important;
+  box-shadow: none !important;
+  height: 100%;
+}
+
+/* ── Table shells ── */
+
+.pinning-table-shell s-table-row:hover,
+.collections-table-shell s-table-row:hover {
+  background: var(--c-surface-tinted);
+}
+
+.curatify-empty--compact {
+  padding: var(--c-gap-lg);
+}
+

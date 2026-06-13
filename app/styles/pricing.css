@@ -1,84 +1,120 @@
 .pricing-plan-price {
   margin: 0;
-  font-size: 32px;
-  font-weight: 700;
+  font-family: var(--c-font-display);
+  font-size: 2rem;
+  font-weight: 800;
   line-height: 1.1;
   letter-spacing: -0.03em;
-  color: var(--p-color-text, #303030);
+  color: var(--c-ink);
 }
 
 .pricing-plan-price-detail {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--c-text-body);
   line-height: 1.4;
-  color: var(--p-color-text-secondary, #616161);
+  color: var(--c-muted);
 }
 
 .pricing-usage-value {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--c-text-body);
   font-weight: 600;
   line-height: 1.4;
-  color: var(--p-color-text, #303030);
+  color: var(--c-ink);
 }
 
 .pricing-usage-label {
   margin: 0;
-  font-size: 12px;
-  line-height: 1.4;
-  color: var(--p-color-text-secondary, #616161);
+  font-family: var(--c-font-mono);
+  font-size: var(--c-text-label);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--c-muted);
 }
 
 .pricing-progress-track {
   overflow: hidden;
   width: 100%;
   height: 8px;
-  border-radius: 999px;
-  background: var(--p-color-bg-surface-secondary, #f6f6f7);
-  border: 1px solid var(--p-color-border-secondary, #e3e3e3);
+  border-radius: var(--c-radius-pill);
+  background: var(--c-purple-light);
+  border: 1px solid var(--c-border);
 }
 
 .pricing-progress-fill {
   height: 100%;
-  border-radius: 999px;
-  background: var(--p-color-bg-fill-success, #29845a);
+  border-radius: var(--c-radius-pill);
+  background: var(--c-primary);
   transition: width 0.2s ease;
 }
 
 .pricing-progress-fill-warning {
-  background: var(--p-color-bg-fill-warning, #b98900);
+  background: var(--c-warning);
 }
 
 .pricing-progress-fill-critical {
-  background: var(--p-color-bg-fill-critical, #c5280c);
+  background: var(--c-error);
 }
 
-.pricing-plan-card-highlight {
-  border: 2px solid var(--p-color-border-emphasis, #005bd3);
-  border-radius: 14px;
+.pricing-plan-card-current {
+  border: 2px solid var(--c-primary);
+  border-radius: var(--c-radius-lg);
+  box-shadow: var(--c-shadow-md);
+  height: 100%;
+}
+
+.pricing-plan-card-pro {
+  border: 2px solid var(--c-purple-mid);
+  border-radius: var(--c-radius-lg);
+  box-shadow: var(--c-shadow-lg);
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    var(--c-purple-light) 0%,
+    transparent 120px
+  );
+}
+
+.pricing-plan-card-pro .pricing-plan-price {
+  color: var(--c-purple-dark);
+}
+
+.pricing-plan-badge-pro {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--c-radius-pill);
+  font-family: var(--c-font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--c-surface);
+  background: linear-gradient(135deg, var(--c-primary), var(--c-purple-mid));
 }
 
 .pricing-comparison-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--c-text-body);
 }
 
 .pricing-comparison-table th,
 .pricing-comparison-table td {
-  padding: 10px 12px;
+  padding: 10px var(--c-gap-md);
   text-align: left;
-  border-bottom: 1px solid var(--p-color-border-secondary, #e3e3e3);
+  border-bottom: 1px solid var(--c-border);
 }
 
 .pricing-comparison-table th {
+  font-family: var(--c-font-display);
   font-weight: 600;
-  color: var(--p-color-text, #303030);
-  background: var(--p-color-bg-surface-secondary, #f6f6f7);
+  color: var(--c-ink);
+  background: var(--c-surface-tinted);
 }
 
 .pricing-comparison-table td {
-  color: var(--p-color-text-secondary, #616161);
+  color: var(--c-muted);
 }
 
 .pricing-comparison-table tr:last-child td,
@@ -89,7 +125,7 @@
 .pricing-benefits-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: var(--c-gap-md);
 }
 
 @media (max-width: 768px) {
@@ -99,10 +135,10 @@
 }
 
 .pricing-benefit-card {
-  padding: 16px;
-  border-radius: 12px;
-  background: var(--p-color-bg-surface-secondary, #f6f6f7);
-  border: 1px solid var(--p-color-border-secondary, #e3e3e3);
+  padding: var(--c-gap-lg);
+  border-radius: var(--c-radius-md);
+  background: var(--c-surface-tinted);
+  border: 1px solid var(--c-border);
 }
 
 .pricing-faq-list {
@@ -111,7 +147,18 @@
 }
 
 .pricing-faq-item {
-  padding: 16px;
+  padding: var(--c-gap-lg);
+}
+
+.pricing-page-intro {
+  padding: var(--c-gap-lg) var(--c-gap-xl);
+  border-radius: var(--c-radius-lg);
+  background: linear-gradient(
+    135deg,
+    var(--c-surface) 0%,
+    var(--c-purple-light) 100%
+  );
+  border: 1px solid var(--c-border);
 }
 
 @media (max-width: 768px) {

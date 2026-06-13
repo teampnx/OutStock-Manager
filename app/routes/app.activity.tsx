@@ -4,11 +4,16 @@ import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import type { ActivityFeedItem, ActivityFeedTone } from "../lib/activity-format";
+import { pageTitle } from "../lib/branding";
 import { formatDateTime } from "../lib/format-datetime";
 import { listActivityFeedForShop } from "../models/activity-log.server";
 import { authenticate } from "../shopify.server";
 
 const PAGE_SIZE = 20;
+
+export function meta() {
+  return [{ title: pageTitle("Activity") }];
+}
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -132,19 +137,12 @@ function MetricCard({
           : undefined;
 
   return (
-    <s-box
-      padding="base"
-      borderWidth="base"
-      borderRadius="large"
-      background="base"
-    >
-      <div className={variantClass}>
-        <s-stack direction="block" gap="small-100">
-          <p className="activity-metric-value">{value.toLocaleString()}</p>
-          <p className="activity-metric-label">{label}</p>
-        </s-stack>
-      </div>
-    </s-box>
+    <div className={`activity-metric-card${variantClass ? ` ${variantClass}` : ""}`}>
+      <s-stack direction="block" gap="small-100">
+        <p className="activity-metric-value">{value.toLocaleString()}</p>
+        <p className="activity-metric-label">{label}</p>
+      </s-stack>
+    </div>
   );
 }
 
@@ -273,12 +271,7 @@ export default function ActivityPage() {
       )}
 
       <s-stack direction="block" gap="large">
-        <s-box
-          padding="large"
-          borderWidth="base"
-          borderRadius="large"
-          background="base"
-        >
+        <div className="curatify-page-hero">
           <s-stack direction="block" gap="small-200">
             <p className="page-intro-title">Store activity timeline</p>
             <p className="page-intro-text">
@@ -287,9 +280,9 @@ export default function ActivityPage() {
               search to find specific events.
             </p>
           </s-stack>
-        </s-box>
+        </div>
 
-        <s-grid gap="base" gridTemplateColumns="1fr 1fr 1fr 1fr">
+        <div className="curatify-metric-grid">
           <MetricCard label="Total events" value={summary.total} />
           <MetricCard
             label="Success events"
@@ -302,8 +295,9 @@ export default function ActivityPage() {
             variant="warning"
           />
           <MetricCard label="Error events" value={summary.error} variant="error" />
-        </s-grid>
+        </div>
 
+        <div className="activity-timeline-shell">
         <s-box
           padding="none"
           borderWidth="base"
@@ -339,19 +333,19 @@ export default function ActivityPage() {
 
           <s-box padding="none">
             {activity.length === 0 ? (
-              <s-box padding="large">
-                <s-paragraph>
-                  <s-text color="subdued">No activity recorded yet.</s-text>
-                </s-paragraph>
-              </s-box>
+              <div className="curatify-empty curatify-empty--compact">
+                <p className="curatify-empty-title">No activity yet</p>
+                <p className="curatify-empty-text">
+                  Product moves, restores, and collection syncs will show up here.
+                </p>
+              </div>
             ) : filteredActivity.length === 0 ? (
-              <s-box padding="large">
-                <s-paragraph>
-                  <s-text color="subdued">
-                    No events match your search or filter.
-                  </s-text>
-                </s-paragraph>
-              </s-box>
+              <div className="curatify-empty curatify-empty--compact">
+                <p className="curatify-empty-title">No matching events</p>
+                <p className="curatify-empty-text">
+                  Try a different filter or search term.
+                </p>
+              </div>
             ) : (
               <>
                 <div className="activity-timeline">
@@ -397,6 +391,7 @@ export default function ActivityPage() {
             )}
           </s-box>
         </s-box>
+        </div>
       </s-stack>
     </s-page>
   );

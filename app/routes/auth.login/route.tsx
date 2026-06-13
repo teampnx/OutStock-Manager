@@ -3,8 +3,13 @@ import { useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { Form, useActionData, useLoaderData } from "react-router";
 
+import { APP_NAME_SHORT, pageTitle } from "../../lib/branding";
 import { login } from "../../shopify.server";
 import { loginErrorMessage } from "./error.server";
+
+export function meta() {
+  return [{ title: pageTitle("Log in") }];
+}
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const errors = loginErrorMessage(await login(request));
@@ -30,7 +35,7 @@ export default function Auth() {
     <AppProvider embedded={false}>
       <s-page>
         <Form method="post">
-        <s-section heading="Log in">
+        <s-section heading={`Log in to ${APP_NAME_SHORT}`}>
           <s-text-field
             name="shop"
             label="Shop domain"

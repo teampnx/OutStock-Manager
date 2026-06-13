@@ -1,13 +1,13 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "5a10d65799a7a6002c0c76972a346567"
-name = "OutStock Manager"
-application_url = "https://example.com"
+name = "Curatify"
+application_url = "https://turmoil-stingily-spinach.ngrok-free.dev"
 embedded = true
 
 [build]
 # Syncs application_url + redirect_urls to the active dev tunnel on `shopify app dev`.
-# Required when using Cloudflare Quick Tunnels — stale tunnel URLs break the parent app link.
+# For stable local dev, use `npm run dev` (ngrok static domain) — see dev/ngrok.env.example.
 automatically_update_urls_on_dev = true
 dev_store_url = "outstock-test-lionlx2x.myshopify.com"
 
@@ -46,6 +46,18 @@ api_version = "2026-04"
   uri = "/webhooks/app/subscriptions/update"
   topics = [ "app_subscriptions/update" ]
 
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/data_request"
+  compliance_topics = [ "customers/data_request" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/customers/redact"
+  compliance_topics = [ "customers/redact" ]
+
+  [[webhooks.subscriptions]]
+  uri = "/webhooks/shop/redact"
+  compliance_topics = [ "shop/redact" ]
+
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
 scopes = "read_products,read_inventory,write_products"
@@ -55,7 +67,7 @@ use_legacy_install_flow = false
 [auth]
 # Placeholder host — replaced with the active dev tunnel when `shopify app dev` runs.
 redirect_urls = [
-  "https://example.com/auth/callback",
-  "https://example.com/auth/shopify/callback",
-  "https://example.com/api/auth/callback",
+  "https://turmoil-stingily-spinach.ngrok-free.dev/auth/callback",
+  "https://turmoil-stingily-spinach.ngrok-free.dev/auth/shopify/callback",
+  "https://turmoil-stingily-spinach.ngrok-free.dev/api/auth/callback",
 ]

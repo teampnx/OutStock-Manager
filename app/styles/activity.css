@@ -1,30 +1,42 @@
 .activity-metric-value {
   margin: 0;
+  font-family: var(--c-font-display);
   font-size: 28px;
   font-weight: 700;
   line-height: 1.1;
   font-variant-numeric: tabular-nums;
-  color: var(--p-color-text, #303030);
+  color: var(--c-ink);
 }
 
 .activity-metric-label {
   margin: 0;
-  font-size: 12px;
+  font-family: var(--c-font-mono);
+  font-size: var(--c-text-label);
   font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   line-height: 1.4;
-  color: var(--p-color-text-secondary, #616161);
+  color: var(--c-muted);
 }
 
 .activity-metric-success .activity-metric-value {
-  color: #29845a;
+  color: var(--c-success);
 }
 
 .activity-metric-warning .activity-metric-value {
-  color: #b98900;
+  color: var(--c-warning);
 }
 
 .activity-metric-error .activity-metric-value {
-  color: #c5280c;
+  color: var(--c-error);
+}
+
+.activity-metric-card {
+  padding: var(--c-gap-lg);
+  border-radius: var(--c-radius-md);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  box-shadow: var(--c-shadow-sm);
 }
 
 .activity-timeline {
@@ -35,10 +47,11 @@
 .activity-timeline-row {
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr) auto;
-  gap: 12px;
+  gap: var(--c-gap-md);
   align-items: start;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--p-color-border-secondary, #e3e3e3);
+  padding: 10px var(--c-gap-lg);
+  border-bottom: 1px solid var(--c-border);
+  transition: background 0.15s ease;
 }
 
 .activity-timeline-row:last-child {
@@ -51,36 +64,42 @@
 
 .activity-timeline-title {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--c-text-body);
   font-weight: 600;
   line-height: 1.35;
-  color: var(--p-color-text, #303030);
+  color: var(--c-ink);
 }
 
 .activity-timeline-description {
   margin: 2px 0 0;
   overflow: hidden;
-  font-size: 12px;
+  font-size: var(--c-text-caption);
   line-height: 1.35;
-  color: var(--p-color-text-secondary, #616161);
+  color: var(--c-muted);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
 .activity-timeline-time {
   margin: 0;
+  font-family: var(--c-font-mono);
   font-size: 11px;
   line-height: 1.35;
-  color: var(--p-color-text-secondary, #8a8a8a);
+  color: var(--c-muted);
   white-space: nowrap;
 }
 
 .activity-timeline-row:hover {
-  background: var(--p-color-bg-surface-hover, #f7f7f7);
+  background: var(--c-purple-light);
 }
 
 .activity-filter-count {
   opacity: 0.75;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
+}
+
+.activity-timeline-shell {
+  overflow: hidden;
+  border-radius: var(--c-radius-lg);
 }

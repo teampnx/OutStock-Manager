@@ -19,9 +19,9 @@ type PreviewCollection = {
 const panelStyle = {
   width: "100%",
   overflow: "hidden",
-  border: "1px solid var(--p-color-border-secondary, #e3e3e3)",
+  border: "1px solid var(--c-border, #ddd8f0)",
   borderRadius: "12px",
-  background: "var(--p-color-bg-surface, #fff)",
+  background: "var(--c-surface, #fff)",
   boxSizing: "border-box",
 } as const;
 
@@ -30,14 +30,14 @@ const panelHeaderStyle = {
   fontSize: "13px",
   fontWeight: 600,
   lineHeight: "1.4",
-  color: "var(--p-color-text, #303030)",
-  background: "var(--p-color-bg-surface-secondary, #f6f6f7)",
-  borderBottom: "1px solid var(--p-color-border-secondary, #e3e3e3)",
+  color: "var(--c-ink, #1a1625)",
+  background: "var(--c-surface-tinted, #f0eef9)",
+  borderBottom: "1px solid var(--c-border, #ddd8f0)",
 } as const;
 
 const panelBodyStyle = {
   width: "100%",
-  background: "var(--p-color-bg-surface, #fff)",
+  background: "var(--c-surface, #fff)",
 } as const;
 
 const previewRowStyle = {
@@ -56,7 +56,7 @@ const previewIndexStyle = {
   width: "24px",
   fontSize: "13px",
   lineHeight: "20px",
-  color: "var(--p-color-text-secondary, #616161)",
+  color: "var(--c-muted, #6e6a88)",
 } as const;
 
 const previewThumbStyle = {
@@ -65,8 +65,8 @@ const previewThumbStyle = {
   height: "36px",
   borderRadius: "8px",
   objectFit: "cover",
-  background: "var(--p-color-bg-surface-secondary, #f6f6f7)",
-  border: "1px solid var(--p-color-border-secondary, #e3e3e3)",
+  background: "var(--c-purple-light, #eae7fb)",
+  border: "1px solid var(--c-border, #ddd8f0)",
 } as const;
 
 const previewTitleStyle = {
@@ -77,7 +77,7 @@ const previewTitleStyle = {
   whiteSpace: "nowrap",
   fontSize: "13px",
   lineHeight: "20px",
-  color: "var(--p-color-text, #303030)",
+  color: "var(--c-ink, #1a1625)",
 } as const;
 
 function PreviewProductThumbnail({
@@ -262,7 +262,7 @@ export function CollectionPreviewModal({
                 margin: 0,
                 fontSize: "13px",
                 lineHeight: "1.4",
-                color: "var(--p-color-text-secondary, #616161)",
+                color: "var(--c-muted, #6e6a88)",
               }}
             >
               Showing preview of products sorted as per configured settings
@@ -273,7 +273,7 @@ export function CollectionPreviewModal({
                 margin: "4px 0 0",
                 fontSize: "12px",
                 lineHeight: "1.4",
-                color: "var(--p-color-text-secondary, #616161)",
+                color: "var(--c-muted, #6e6a88)",
               }}
             >
               {collection.productCount}{" "}

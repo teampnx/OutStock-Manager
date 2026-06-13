@@ -7,6 +7,10 @@ import { Form, useActionData, useLoaderData, useNavigation } from "react-router"
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import {
+  APP_NAME,
+  pageTitle,
+} from "../lib/branding";
+import {
   BILLING_PLAN_LINE_ITEMS,
   billingCallbackUrl,
   isBillingTestMode,
@@ -44,6 +48,10 @@ import {
 } from "../lib/billing-errors.server";
 import { authenticate } from "../shopify.server";
 import { ensureShop } from "../models/shop.server";
+
+export function meta() {
+  return [{ title: pageTitle("Pricing") }];
+}
 
 function logPricingStepFailure(step: string, shop: string, error: unknown): void {
   console.error(
@@ -217,7 +225,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       return {
         success: false as const,
         error: isPublicDistributionError
-          ? `${shopifyMessage} Enable public (Shopify App Store) distribution for this app in Shopify Partners → Apps → OutStock Manager → Distribution. The app can remain in draft; it does not need to be published.`
+          ? `${shopifyMessage} Enable public (Shopify App Store) distribution for this app in Shopify Partners → Apps → ${APP_NAME} → Distribution. The app can remain in draft; it does not need to be published.`
           : shopifyMessage || "Billing request failed.",
       };
     }
@@ -336,7 +344,11 @@ function PlanCard({
   return (
     <div
       className={
-        plan.id === "GROWTH" ? "pricing-plan-card-highlight" : undefined
+        isCurrent
+          ? "pricing-plan-card-current"
+          : plan.id === "PRO"
+            ? "pricing-plan-card-pro"
+            : undefined
       }
     >
       <s-box
@@ -350,8 +362,8 @@ function PlanCard({
             <s-stack direction="inline" gap="small-100" alignItems="center">
               <s-heading>{plan.name}</s-heading>
               {isCurrent ? <s-badge tone="success">Current plan</s-badge> : null}
-              {plan.id === "GROWTH" && !isCurrent ? (
-                <s-badge tone="info">Popular</s-badge>
+              {plan.id === "PRO" && !isCurrent ? (
+                <span className="pricing-plan-badge-pro">Best value</span>
               ) : null}
             </s-stack>
             <s-paragraph>
@@ -383,7 +395,7 @@ function PlanCard({
               <input type="hidden" name="plan" value={plan.id} />
               <s-button
                 type="submit"
-                variant={isUpgrade ? "primary" : "secondary"}
+                variant={plan.id === "PRO" || isUpgrade ? "primary" : "secondary"}
                 {...(isSubmitting ? { loading: true } : {})}
                 disabled={isSubmitting}
               >
@@ -451,6 +463,16 @@ export default function PricingPage() {
       ) : null}
 
       <s-stack direction="block" gap="large">
+        <div className="pricing-page-intro">
+          <s-stack direction="block" gap="small-200">
+            <p className="page-intro-title">Plans for every catalog size</p>
+            <p className="page-intro-text">
+              Scale collection sorting, pinning, and automation as your store
+              grows. Your current plan is highlighted below.
+            </p>
+          </s-stack>
+        </div>
+
         <s-box
           padding="large"
           borderWidth="base"
@@ -535,7 +557,7 @@ export default function PricingPage() {
               billing approval page to confirm your subscription.
             </s-text>
           </s-paragraph>
-          <s-grid gap="base" gridTemplateColumns="1fr 1fr 1fr">
+          <div className="curatify-pricing-grid">
             {PRICING_PLANS.map((planOption) => (
               <PlanCard
                 key={planOption.id}
@@ -543,7 +565,7 @@ export default function PricingPage() {
                 currentPlanId={plan}
               />
             ))}
-          </s-grid>
+          </div>
         </s-stack>
 
         <s-box

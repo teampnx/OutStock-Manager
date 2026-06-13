@@ -1,47 +1,97 @@
 .settings-section-lead {
-  margin: 0 0 12px;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--p-color-text-secondary, #616161);
+  margin: 0 0 var(--c-gap-md);
+  font-size: var(--c-text-body);
+  line-height: 1.55;
+  color: var(--c-muted);
+}
+
+.settings-section-card {
+  padding: var(--c-gap-lg) var(--c-gap-xl);
+  border-radius: var(--c-radius-lg);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  box-shadow: var(--c-shadow-sm);
 }
 
 .settings-aside-card {
-  padding: 14px;
-  border-radius: 12px;
-  background: var(--p-color-bg-surface-secondary, #f6f6f7);
-  border: 1px solid var(--p-color-border-secondary, #e3e3e3);
+  padding: var(--c-gap-lg);
+  border-radius: var(--c-radius-md);
+  background: linear-gradient(
+    135deg,
+    var(--c-purple-light) 0%,
+    var(--c-surface) 100%
+  );
+  border: 1px solid var(--c-border-strong);
 }
 
 .settings-aside-title {
   margin: 0 0 6px;
-  font-size: 13px;
+  font-family: var(--c-font-display);
+  font-size: var(--c-text-body);
   font-weight: 600;
-  color: var(--p-color-text, #303030);
+  color: var(--c-purple-dark);
 }
 
 .settings-aside-text {
   margin: 0;
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--p-color-text-secondary, #616161);
+  font-size: var(--c-text-caption);
+  line-height: 1.55;
+  color: var(--c-muted);
 }
 
 .settings-result-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px 16px;
+  gap: var(--c-gap-sm) var(--c-gap-lg);
+  padding: var(--c-gap-md);
+  border-radius: var(--c-radius-md);
+  background: var(--c-surface-tinted);
+  border: 1px solid var(--c-border);
 }
 
 .settings-result-label {
   margin: 0;
-  font-size: 12px;
-  color: var(--p-color-text-secondary, #616161);
+  font-family: var(--c-font-mono);
+  font-size: var(--c-text-label);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--c-muted);
 }
 
 .settings-result-value {
   margin: 2px 0 0;
+  font-family: var(--c-font-display);
   font-size: 18px;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
-  color: var(--p-color-text, #303030);
+  color: var(--c-ink);
+}
+
+.settings-page-hero {
+  padding: var(--c-gap-lg) var(--c-gap-xl);
+  margin-bottom: var(--c-gap-md);
+  border-radius: var(--c-radius-lg);
+  background: linear-gradient(
+    135deg,
+    var(--c-surface) 0%,
+    var(--c-purple-light) 100%
+  );
+  border: 1px solid var(--c-border);
+}
+
+.settings-page-title {
+  margin: 0;
+  font-family: var(--c-font-display);
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--c-ink);
+  text-transform: lowercase;
+}
+
+.settings-page-subtitle {
+  margin: 4px 0 0;
+  font-size: var(--c-text-body);
+  line-height: 1.5;
+  color: var(--c-muted);
 }

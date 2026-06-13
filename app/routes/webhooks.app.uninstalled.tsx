@@ -1,6 +1,7 @@
 import type { ActionFunctionArgs } from "react-router";
 
 import { ingestWebhook } from "../lib/webhook-ingest.server";
+import { logGdprCompliance } from "../models/shop-cleanup.server";
 import { authenticate } from "../shopify.server";
 import db from "../db.server";
 
@@ -8,7 +9,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   const { shop, session, topic, webhookId, payload } =
     await authenticate.webhook(request);
 
-  console.log(`Received ${topic} webhook for ${shop}`);
+  logGdprCompliance("info", "App uninstalled — enqueueing shop cleanup", {
+    shopDomain: shop,
+    shopifyWebhookId: webhookId,
+  });
 
   await ingestWebhook({
     shopifyWebhookId: webhookId,
@@ -23,6 +27,9 @@ export const action = async ({ request }: ActionFunctionArgs) => {
   // If this webhook already ran, the session may have been deleted previously.
   if (session) {
     await db.session.deleteMany({ where: { shop } });
+    logGdprCompliance("info", "Sessions deleted on uninstall", {
+      shopDomain: shop,
+    });
   }
 
   return new Response();

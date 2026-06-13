@@ -17,7 +17,7 @@
   margin: 0 !important;
   font-size: 14px !important;
   line-height: 1.4 !important;
-  color: var(--p-color-text, #303030) !important;
+  color: var(--c-ink, #1a1625) !important;
 }
 
 .collection-preview-collection-label {
@@ -28,22 +28,22 @@
   margin: 0 !important;
   font-size: 13px !important;
   line-height: 1.4 !important;
-  color: var(--p-color-text-secondary, #616161) !important;
+  color: var(--c-muted, #6e6a88) !important;
 }
 
 .collection-preview-meta {
   margin: 4px 0 0 !important;
   font-size: 12px !important;
   line-height: 1.4 !important;
-  color: var(--p-color-text-secondary, #616161) !important;
+  color: var(--c-muted, #6e6a88) !important;
 }
 
 .collection-preview-panel {
   width: 100% !important;
   overflow: hidden !important;
-  border: 1px solid var(--p-color-border-secondary, #e3e3e3) !important;
+  border: 1px solid var(--c-border, #ddd8f0) !important;
   border-radius: 12px !important;
-  background: var(--p-color-bg-surface, #fff) !important;
+  background: var(--c-surface, #fff) !important;
   box-sizing: border-box !important;
 }
 
@@ -52,14 +52,14 @@
   font-size: 13px !important;
   font-weight: 600 !important;
   line-height: 1.4 !important;
-  color: var(--p-color-text, #303030) !important;
-  background: var(--p-color-bg-surface-secondary, #f6f6f7) !important;
-  border-bottom: 1px solid var(--p-color-border-secondary, #e3e3e3) !important;
+  color: var(--c-ink, #1a1625) !important;
+  background: var(--c-surface-tinted, #f0eef9) !important;
+  border-bottom: 1px solid var(--c-border, #ddd8f0) !important;
 }
 
 .collection-preview-panel-body {
   width: 100% !important;
-  background: var(--p-color-bg-surface, #fff) !important;
+  background: var(--c-surface, #fff) !important;
 }
 
 .collection-preview-panel-empty {
@@ -67,7 +67,7 @@
   font-size: 13px !important;
   line-height: 1.5 !important;
   text-align: center !important;
-  color: var(--p-color-text-secondary, #616161) !important;
+  color: var(--c-muted, #6e6a88) !important;
 }
 
 .collection-preview-panel-empty p {
@@ -76,7 +76,7 @@
 
 .collection-preview-panel-empty-lead {
   margin: 0 0 4px !important;
-  color: var(--p-color-text, #303030) !important;
+  color: var(--c-ink, #1a1625) !important;
 }
 
 .collection-preview-product-list {
@@ -95,7 +95,7 @@
   min-height: 44px !important;
   padding: 6px 14px !important;
   box-sizing: border-box !important;
-  border-bottom: 1px solid var(--p-color-border-secondary, #e3e3e3) !important;
+  border-bottom: 1px solid var(--c-border, #ddd8f0) !important;
 }
 
 .collection-preview-product-row:last-child {
@@ -107,7 +107,7 @@
   width: 24px !important;
   font-size: 13px !important;
   line-height: 20px !important;
-  color: var(--p-color-text-secondary, #616161) !important;
+  color: var(--c-muted, #6e6a88) !important;
 }
 
 .collection-preview-product-thumb {
@@ -116,8 +116,8 @@
   height: 36px !important;
   border-radius: 8px !important;
   object-fit: cover !important;
-  background: var(--p-color-bg-surface-secondary, #f6f6f7) !important;
-  border: 1px solid var(--p-color-border-secondary, #e3e3e3) !important;
+  background: var(--c-surface-tinted, #f0eef9) !important;
+  border: 1px solid var(--c-border, #ddd8f0) !important;
 }
 
 .collection-preview-product-thumb-placeholder {
@@ -125,8 +125,8 @@
   width: 36px !important;
   height: 36px !important;
   border-radius: 8px !important;
-  background: var(--p-color-bg-surface-secondary, #f6f6f7) !important;
-  border: 1px solid var(--p-color-border-secondary, #e3e3e3) !important;
+  background: var(--c-surface-tinted, #f0eef9) !important;
+  border: 1px solid var(--c-border, #ddd8f0) !important;
 }
 
 .collection-preview-product-title {
@@ -137,5 +137,5 @@
   white-space: nowrap !important;
   font-size: 13px !important;
   line-height: 20px !important;
-  color: var(--p-color-text, #303030) !important;
+  color: var(--c-ink, #1a1625) !important;
 }

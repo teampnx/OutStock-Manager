@@ -55,7 +55,7 @@ export const PRICING_FAQ: PricingFaqItem[] = [
   {
     question: "Which collections are supported?",
     answer:
-      "OutStock Manager works with manual collections. Collections using automated sort rules (best selling, price, etc.) cannot be reordered and are shown as blocked in the Collections page.",
+      "Curatify works with manual collections. Collections using automated sort rules (best selling, price, etc.) cannot be reordered and are shown as blocked in the Collections page.",
   },
   {
     question: "Do sold-out products stay at the bottom forever?",
@@ -65,6 +65,6 @@ export const PRICING_FAQ: PricingFaqItem[] = [
   {
     question: "Is my data safe if I uninstall the app?",
     answer:
-      "Uninstalling removes app-specific data from our systems. Your Shopify products and collections are never deleted by OutStock Manager.",
+      "Uninstalling removes app-specific data from our systems. Your Shopify products and collections are never deleted by Curatify.",
   },
 ];

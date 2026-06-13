@@ -4,13 +4,14 @@ import type {
   HeadersFunction,
   LoaderFunctionArgs,
 } from "react-router";
-import { useFetcher, useLoaderData, useRevalidator } from "react-router";
+import { useFetcher, useLoaderData, useNavigate, useRevalidator } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import { Prisma } from "@prisma/client";
 
 import { resetPrismaClient } from "../db.server";
+import { pageTitle } from "../lib/branding";
 import { formatStoreDateTime } from "../lib/format-datetime";
 import { PlanLimitError } from "../lib/plan-enforcement.server";
 import { enqueueBackfillSoldOutProducts } from "../models/collection-reorder.server";
@@ -30,8 +31,11 @@ import {
   showCollectionPreviewModal,
 } from "../components/CollectionPreviewModal";
 import { authenticate } from "../shopify.server";
-import styles from "../styles/collections.module.css";
 import type { loader as collectionDetailsLoader } from "./app.collections.$id";
+
+export function meta() {
+  return [{ title: pageTitle("Collections") }];
+}
 
 type CollectionTab = "all" | "enabled";
 type TitleSort = "default" | "asc" | "desc";
@@ -275,7 +279,7 @@ function CollectionThumbnail({
   }
 
   return (
-    <div className={styles.collectionPlaceholder} aria-hidden="true">
+    <div className="collections-placeholder" aria-hidden="true">
       <s-icon type="image-none" size="small" color="subdued" />
     </div>
   );
@@ -289,7 +293,7 @@ function SortRuleSelect({
   label: string;
 }) {
   return (
-    <div className={styles.compactSelect}>
+    <div className="collections-compact-select">
       <s-select
         label="Applied sorting rule"
         labelAccessibilityVisibility="exclusive"
@@ -316,7 +320,9 @@ function PushDownStatusSelect({
   return (
     <div
       className={
-        enabled ? styles.statusSelectEnabled : styles.statusSelectDisabled
+        enabled
+          ? "collections-status-select-enabled"
+          : "collections-status-select-disabled"
       }
     >
       <s-select
@@ -356,23 +362,41 @@ function CollectionTableRow({
   isRetrying: boolean;
   optimisticInProgress: boolean;
 }) {
+  const navigate = useNavigate();
   const showRetry =
     collection.sortStatus.state === "failed" && collection.enabled;
-  const previewLinkId = `collection-preview-${collection.id}`;
+  const detailLinkId = `collection-detail-${collection.id}`;
 
   return (
-    <s-table-row clickDelegate={previewLinkId}>
+    <s-table-row clickDelegate={detailLinkId}>
       <s-table-cell>
-        <div className={`${styles.tableCellContent} ${styles.collectionCell}`}>
+        <div className="collections-table-cell-content collections-collection-cell">
           <CollectionThumbnail
             title={collection.title}
             imageUrl={collection.imageUrl}
             imageAlt={collection.imageAlt}
           />
           <s-stack direction="block" gap="small-100">
-            <s-link href={`/app/collections/${collection.id}`}>
+            <a
+              id={detailLinkId}
+              href={`/app/collections/${collection.id}`}
+              className="collections-title-link"
+              onClick={(event) => {
+                if (
+                  event.metaKey ||
+                  event.ctrlKey ||
+                  event.shiftKey ||
+                  event.altKey ||
+                  event.button !== 0
+                ) {
+                  return;
+                }
+                event.preventDefault();
+                navigate(`/app/collections/${collection.id}`);
+              }}
+            >
               {collection.title}
-            </s-link>
+            </a>
             <s-text color="subdued">
               {collection.productCount}{" "}
               {collection.productCount === 1 ? "product" : "products"}
@@ -381,7 +405,7 @@ function CollectionTableRow({
         </div>
       </s-table-cell>
       <s-table-cell>
-        <div className={styles.tableCellContent}>
+        <div className="collections-table-cell-content">
           <SortRuleSelect
             sortOrder={collection.sortOrder}
             label={collection.sortOrderLabel}
@@ -389,7 +413,7 @@ function CollectionTableRow({
         </div>
       </s-table-cell>
       <s-table-cell>
-        <div className={styles.tableCellContent}>
+        <div className="collections-table-cell-content">
           <PushDownStatusSelect
             collection={collection}
             isToggling={isToggling}
@@ -398,7 +422,7 @@ function CollectionTableRow({
         </div>
       </s-table-cell>
       <s-table-cell>
-        <div className={styles.tableCellContent}>
+        <div className="collections-table-cell-content">
           <LastSortedAtCell
             sortStatus={collection.sortStatus}
             sortBlockedReason={collection.sortBlockedReason}
@@ -407,12 +431,14 @@ function CollectionTableRow({
         </div>
       </s-table-cell>
       <s-table-cell>
-        <div className={styles.tableCellContent}>
+        <div className="collections-table-cell-content">
           <s-stack direction="inline" gap="small-100" alignItems="center">
             <s-button
-              id={previewLinkId}
               variant="secondary"
-              onClick={() => onPreview(collection.id)}
+              onClick={(event) => {
+                event.stopPropagation();
+                onPreview(collection.id);
+              }}
             >
               Preview
             </s-button>
@@ -421,7 +447,10 @@ function CollectionTableRow({
                 variant="tertiary"
                 icon="refresh"
                 accessibilityLabel={`Retry sort for ${collection.title}`}
-                onClick={() => onRetry(collection.id)}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onRetry(collection.id);
+                }}
                 {...(isRetrying ? { loading: true } : {})}
                 disabled={isRetrying}
               />
@@ -679,8 +708,9 @@ export default function CollectionsPage() {
       )}
 
       <s-stack direction="block" gap="large">
-        <div className={styles.pageIntro}>
+        <div className="collections-page-intro">
           <s-stack direction="block" gap="small-100">
+            <span className="curatify-mono-label">Collections</span>
             <p className="page-intro-title">Manage collection sorting</p>
             <p className="page-intro-text">
               Enable push-down sorting on manual collections to keep sold-out
@@ -691,20 +721,20 @@ export default function CollectionsPage() {
         </div>
 
         {collections.length > 0 ? (
-          <div className={styles.statsBar}>
-            <div className={styles.statCard}>
+          <div className="collections-stats-bar">
+            <div className="collections-stat-card">
               <p className="stat-card-value">{counts.all}</p>
               <p className="stat-card-label">Total collections</p>
             </div>
-            <div className={`${styles.statCard} stat-card-accent-success`}>
+            <div className="collections-stat-card stat-card-accent-success">
               <p className="stat-card-value">{counts.enabled}</p>
               <p className="stat-card-label">Push down enabled</p>
             </div>
-            <div className={styles.statCard}>
+            <div className="collections-stat-card">
               <p className="stat-card-value">{counts.disabled}</p>
               <p className="stat-card-label">Disabled</p>
             </div>
-            <div className={`${styles.statCard} stat-card-accent-info`}>
+            <div className="collections-stat-card stat-card-accent-info">
               <p className="stat-card-value">{manualSortableCount}</p>
               <p className="stat-card-label">Manual sort eligible</p>
             </div>
@@ -714,11 +744,14 @@ export default function CollectionsPage() {
 
       <s-section padding="none">
         {collections.length === 0 ? (
-          <s-box padding="base" background="subdued">
-            <s-paragraph>No collections synced yet.</s-paragraph>
-          </s-box>
+          <div className="curatify-empty curatify-empty--compact">
+            <p className="curatify-empty-title">No collections synced</p>
+            <p className="curatify-empty-text">
+              Collections from your store will appear here once synced.
+            </p>
+          </div>
         ) : (
-          <div className={styles.tableShell}>
+          <div className="collections-table-shell">
           <s-table loading={tableLoading}>
             <s-box slot="filters" padding="small">
               <s-stack direction="block" gap="small-200">
@@ -780,7 +813,7 @@ export default function CollectionsPage() {
                   </s-stack>
                 </s-grid>
                 {searchOpen ? (
-                  <div className={styles.searchPanel}>
+                  <div className="collections-search-panel">
                     <s-search-field
                       id="collections-search-field"
                       label="Search collections"

@@ -49,6 +49,41 @@ export default defineConfig({
     },
   },
   plugins: [
+    {
+      name: "iframe-request-logger",
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          const url = req.url ?? "";
+          const accept = req.headers.accept ?? "";
+          const dest = req.headers["sec-fetch-dest"] ?? "";
+          const isDocument =
+            dest === "document" ||
+            dest === "iframe" ||
+            accept.includes("text/html");
+
+          if (!isDocument || url.startsWith("/@") || url.includes(".tsx")) {
+            next();
+            return;
+          }
+
+          const started = Date.now();
+          const ua = req.headers["user-agent"] ?? "";
+          const referer = req.headers.referer ?? "";
+          const auth = req.headers.authorization ? "present" : "absent";
+
+          res.on("finish", () => {
+            console.log(
+              `[iframe-doc] ${res.statusCode} ${req.method} ${url} ` +
+                `ua=${JSON.stringify(ua.slice(0, 80))} ` +
+                `referer=${JSON.stringify(referer.slice(0, 100))} ` +
+                `auth=${auth} dest=${dest} ${Date.now() - started}ms`,
+            );
+          });
+
+          next();
+        });
+      },
+    },
     reactRouter(),
     tsconfigPaths(),
   ],

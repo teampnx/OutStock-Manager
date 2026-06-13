@@ -2,6 +2,7 @@ import type { Job } from "@prisma/client";
 
 import { processBackfillCollectionsJob } from "./process-backfill-collections.server";
 import { processBackfillSoldOutProductsJob } from "./process-backfill-sold-out-products.server";
+import { processCleanupShopJob } from "./process-cleanup-shop.server";
 import { processInventoryChangeJob } from "./process-inventory-change.server";
 import { processProductUpdateJob } from "./process-product-update.server";
 import { processReorderSoldOutProductJob } from "./process-reorder-sold-out-product.server";
@@ -36,9 +37,7 @@ export async function processJob(job: Job): Promise<void> {
       await processRestoreProductPositionJob(job);
       return;
     case "CLEANUP_SHOP":
-      console.log(
-        `[job-worker] CLEANUP_SHOP shop=${job.shopDomain} jobId=${job.id}`,
-      );
+      await processCleanupShopJob(job);
       return;
     case "REORDER_COLLECTION_CHUNK":
     case "SYNC_PRODUCT_COLLECTIONS":

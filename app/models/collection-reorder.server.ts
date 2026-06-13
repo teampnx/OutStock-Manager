@@ -1,5 +1,9 @@
 import type { ActivityType, InventoryStatus, RestorePosition } from "@prisma/client";
 
+import {
+  applyCollectionSortWithPins,
+  getFirstPositionAfterPins,
+} from "./collection-sort-with-pins.server";
 import prisma from "../db.server";
 import { recordActivityLog } from "./activity-log.server";
 import {
@@ -291,6 +295,8 @@ export async function reorderSoldOutProductInCollection(
 
   await touchCollectionLastSortedAt(collection.id);
 
+  await applyCollectionSortWithPins(shopDomain, admin, collection.id);
+
   return {
     outcome: "reordered",
     oldPosition: liveIndex,
@@ -381,8 +387,11 @@ export async function restoreProductPositionInCollection(
   }
 
   const { liveIndex } = live;
+  const pinnedCount = await getFirstPositionAfterPins(collection.id);
   const targetPosition =
-    restorePosition === "TOP" ? 0 : positionRow.originalPosition;
+    restorePosition === "TOP"
+      ? pinnedCount
+      : Math.max(positionRow.originalPosition, pinnedCount);
   const action: CollectionReorderAction =
     restorePosition === "TOP" ? "RESTORE_TOP" : "RESTORE_ORIGINAL";
 
@@ -432,6 +441,8 @@ export async function restoreProductPositionInCollection(
     productTitle: trackedProduct.title,
     collectionTitle: collection.title,
   });
+
+  await applyCollectionSortWithPins(shopDomain, admin, collection.id);
 }
 
 export async function backfillSoldOutProductsForShop(
@@ -603,6 +614,11 @@ export async function backfillSoldOutProductsForShop(
     }
 
     await touchCollectionLastSortedAt(collectionMemberships[0].collectionId);
+    await applyCollectionSortWithPins(
+      shopDomain,
+      admin,
+      collectionMemberships[0].collectionId,
+    );
   }
 
   const summary: BackfillSoldOutProductsResult = {

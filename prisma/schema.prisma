@@ -9,8 +9,8 @@ generator client {
 // enough when changing adapters.
 // See https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string for more information
 datasource db {
-  provider = "sqlite"
-  url      = "file:dev.sqlite"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Session {
@@ -138,6 +138,7 @@ model Shop {
   jobs                     Job[]
   activityLogs             ActivityLog[]
   subscription             Subscription?
+  pinnedProducts           PinnedProduct[]
 }
 
 model Subscription {
@@ -209,6 +210,7 @@ model Collection {
   updatedAt           DateTime                  @updatedAt
   productPositions    CollectionProductPosition[]
   activityLogs        ActivityLog[]
+  pinnedProducts      PinnedProduct[]
 
   @@unique([shopId, shopifyCollectionId])
   @@index([shopId])
@@ -234,6 +236,23 @@ model ActivityLog {
 
   @@index([shopId, createdAt])
   @@index([shopId, type])
+}
+
+model PinnedProduct {
+  id               String     @id @default(cuid())
+  shopId           String
+  shop             Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  collectionId     String
+  collection       Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  shopifyProductId String
+  position         Int
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@unique([collectionId, shopifyProductId])
+  @@unique([collectionId, position])
+  @@index([shopId])
+  @@index([collectionId])
 }
 
 model CollectionProductPosition {

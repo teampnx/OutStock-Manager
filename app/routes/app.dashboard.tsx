@@ -4,12 +4,17 @@ import { useFetcher, useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
 import type { ActivityFeedItem } from "../lib/activity-format";
+import { APP_NAME_SHORT, APP_TAGLINE, KPI_ACCENTS, pageTitle } from "../lib/branding";
 import { formatDateTime } from "../lib/format-datetime";
 import { getDashboardStats } from "../models/activity-log.server";
 import { authenticate } from "../shopify.server";
 import { ensureShop } from "../models/shop.server";
 import type { loader as activityLoader } from "./app.activity";
 import type { loader as collectionsLoader } from "./app.collections";
+
+export function meta() {
+  return [{ title: pageTitle("Dashboard") }];
+}
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { session } = await authenticate.admin(request);
@@ -72,15 +77,6 @@ export const loader = async ({ request }: LoaderFunctionArgs) => {
   }
 };
 
-const KPI_ACCENTS = {
-  products: "#5c6ac4",
-  collections: "#637381",
-  inStock: "#29845a",
-  soldOut: "#c5280c",
-  moved: "#b98900",
-  restored: "#005bd3",
-} as const;
-
 function formatRestorePosition(position: string) {
   return position === "TOP" ? "Top of collection" : "Original position";
 }
@@ -110,12 +106,7 @@ function PanelCard({
   children: ReactNode;
 }) {
   return (
-    <s-box
-      padding="none"
-      borderWidth="base"
-      borderRadius="large"
-      background="base"
-    >
+    <div className="curatify-section-card">
       <div className="dashboard-panel-header">
         <s-grid
           gridTemplateColumns="1fr auto"
@@ -129,7 +120,7 @@ function PanelCard({
         </s-grid>
       </div>
       {children}
-    </s-box>
+    </div>
   );
 }
 
@@ -143,12 +134,7 @@ function KpiCard({
   accent: string;
 }) {
   return (
-    <s-box
-      padding="large"
-      borderWidth="base"
-      borderRadius="large"
-      background="base"
-    >
+    <div className="curatify-kpi-card">
       <div
         className="dashboard-kpi-accent"
         style={{ borderLeftColor: accent, paddingLeft: 12 }}
@@ -158,7 +144,7 @@ function KpiCard({
           <p className="dashboard-kpi-label">{label}</p>
         </s-stack>
       </div>
-    </s-box>
+    </div>
   );
 }
 
@@ -203,12 +189,7 @@ function HorizontalBarChart({
   const max = Math.max(...rows.map((row) => row.value), 1);
 
   return (
-    <s-box
-      padding="none"
-      borderWidth="base"
-      borderRadius="large"
-      background="base"
-    >
+    <div className="dashboard-chart-card">
       <div className="dashboard-chart-panel">
         <p className="chart-card-title">{title}</p>
         <div className="dashboard-chart-rows">
@@ -229,7 +210,7 @@ function HorizontalBarChart({
           ))}
         </div>
       </div>
-    </s-box>
+    </div>
   );
 }
 
@@ -318,12 +299,7 @@ export default function Dashboard() {
 
       <s-stack direction="block" gap="large">
         {/* Row 1: Hero */}
-        <s-box
-          padding="large"
-          borderWidth="base"
-          borderRadius="large"
-          background="base"
-        >
+        <div className="curatify-hero">
           <s-stack direction="block" gap="base">
             <s-grid
               gridTemplateColumns="1fr auto"
@@ -331,7 +307,8 @@ export default function Dashboard() {
               alignItems="start"
             >
               <s-stack direction="block" gap="small-200">
-                <p className="dashboard-hero-title">OutStock Manager</p>
+                <p className="dashboard-hero-title">{APP_NAME_SHORT}</p>
+                <p className="dashboard-hero-subtitle">{APP_TAGLINE}</p>
                 <s-paragraph>
                   <s-text color="subdued">{heroDescription}</s-text>
                 </s-paragraph>
@@ -365,10 +342,10 @@ export default function Dashboard() {
               </span>
             </div>
           </s-stack>
-        </s-box>
+        </div>
 
         {/* Row 2: KPI cards */}
-        <s-grid gap="base" gridTemplateColumns="1fr 1fr 1fr 1fr">
+        <div className="curatify-kpi-grid">
           <KpiCard
             label="Tracked Products"
             value={stats.totalTrackedProducts}
@@ -399,12 +376,7 @@ export default function Dashboard() {
             value={stats.productsRestored}
             accent={KPI_ACCENTS.restored}
           />
-          <s-box
-            padding="large"
-            borderWidth="base"
-            borderRadius="large"
-            background="base"
-          >
+          <div className="curatify-kpi-card">
             <div
               className="dashboard-kpi-accent"
               style={{ borderLeftColor: KPI_ACCENTS.inStock, paddingLeft: 12 }}
@@ -414,13 +386,8 @@ export default function Dashboard() {
                 <p className="dashboard-kpi-label">Stock health</p>
               </s-stack>
             </div>
-          </s-box>
-          <s-box
-            padding="large"
-            borderWidth="base"
-            borderRadius="large"
-            background="base"
-          >
+          </div>
+          <div className="curatify-kpi-card">
             <div
               className="dashboard-kpi-accent"
               style={{ borderLeftColor: KPI_ACCENTS.soldOut, paddingLeft: 12 }}
@@ -430,8 +397,8 @@ export default function Dashboard() {
                 <p className="dashboard-kpi-label">Sold-out rate</p>
               </s-stack>
             </div>
-          </s-box>
-        </s-grid>
+          </div>
+        </div>
 
         {/* Charts */}
         <div className="dashboard-charts-grid">
@@ -473,7 +440,7 @@ export default function Dashboard() {
         </div>
 
         {/* Row 3: Activity + sidebar */}
-        <s-grid gap="base" gridTemplateColumns="2fr 1fr" alignItems="start">
+        <div className="curatify-two-col-layout">
           <PanelCard
             title="Recent Activity"
             linkHref="/app/activity"
@@ -490,14 +457,13 @@ export default function Dashboard() {
                   </s-stack>
                 </s-box>
               ) : recentActivity.length === 0 ? (
-                <s-box padding="large">
-                  <s-paragraph>
-                    <s-text color="subdued">
-                      No activity recorded yet. Product moves, restores, and
-                      syncs will appear here.
-                    </s-text>
-                  </s-paragraph>
-                </s-box>
+                <div className="curatify-empty curatify-empty--compact">
+                  <p className="curatify-empty-title">No activity yet</p>
+                  <p className="curatify-empty-text">
+                    Product moves, restores, and syncs will appear here once
+                    your store starts sorting.
+                  </p>
+                </div>
               ) : (
                 <div className="dashboard-timeline">
                   {recentActivity.map((entry) => (
@@ -579,7 +545,7 @@ export default function Dashboard() {
               </s-box>
             </PanelCard>
           </s-stack>
-        </s-grid>
+        </div>
 
         {/* Row 4: Store overview */}
         <PanelCard title="Store Overview">

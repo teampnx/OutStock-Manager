@@ -1,0 +1,9 @@
+version: "3"
+
+# Authtoken is loaded from dev/ngrok.env at runtime (see scripts/dev-stable.sh).
+# Static domain: turmoil-stingily-spinach.ngrok-free.dev
+
+tunnels:
+  outstock-manager:
+    proto: http
+    addr: 3458

@@ -1,0 +1,57 @@
+/* Curatify design tokens */
+:root {
+  /* Brand palette */
+  --c-primary: #5b4fcf;
+  --c-purple-dark: #3d2f9e;
+  --c-purple-mid: #7b6fdf;
+  --c-purple-light: #eae7fb;
+  --c-bg: #f5f4fc;
+  --c-surface: #ffffff;
+  --c-surface-tinted: #f0eef9;
+  --c-ink: #1a1625;
+  --c-muted: #6e6a88;
+  --c-border: #ddd8f0;
+  --c-border-strong: #c4bce8;
+
+  /* Semantic */
+  --c-success: #22c55e;
+  --c-success-bg: #ecfdf3;
+  --c-error: #ef4444;
+  --c-error-bg: #fef2f2;
+  --c-warning: #f59e0b;
+  --c-warning-bg: #fffbeb;
+
+  /* Typography */
+  --c-font-display: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+  --c-font-body: "Inter", system-ui, sans-serif;
+  --c-font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Type scale */
+  --c-text-hero: 2rem;
+  --c-text-title: 1.5rem;
+  --c-text-kpi: 2.125rem;
+  --c-text-stat: 1.625rem;
+  --c-text-body: 0.8125rem;
+  --c-text-caption: 0.75rem;
+  --c-text-label: 0.6875rem;
+
+  /* Spacing & radius */
+  --c-radius-sm: 8px;
+  --c-radius-md: 12px;
+  --c-radius-lg: 16px;
+  --c-radius-xl: 20px;
+  --c-radius-pill: 999px;
+  --c-gap-sm: 8px;
+  --c-gap-md: 12px;
+  --c-gap-lg: 16px;
+  --c-gap-xl: 24px;
+
+  /* Shadows */
+  --c-shadow-sm: 0 1px 2px rgba(26, 22, 37, 0.04);
+  --c-shadow-md: 0 4px 12px rgba(91, 79, 207, 0.08);
+  --c-shadow-lg: 0 8px 24px rgba(91, 79, 207, 0.12);
+
+  /* Polaris bridge — map brand into admin context */
+  --p-color-text-link: var(--c-primary);
+  --p-color-text-link-hover: var(--c-purple-dark);
+}

@@ -1,0 +1,117 @@
+/* Collections list page */
+
+.collections-page-intro {
+  padding: var(--c-gap-lg) var(--c-gap-xl);
+  border-radius: var(--c-radius-lg);
+  background: linear-gradient(
+    135deg,
+    var(--c-surface) 0%,
+    var(--c-purple-light) 100%
+  );
+  border: 1px solid var(--c-border);
+  box-shadow: var(--c-shadow-sm);
+}
+
+.collections-stats-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--c-gap-md);
+  padding: 0 4px 4px;
+}
+
+@media (max-width: 900px) {
+  .collections-stats-bar {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.collections-stat-card {
+  padding: 14px var(--c-gap-lg);
+  border-radius: var(--c-radius-md);
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  box-shadow: var(--c-shadow-sm);
+}
+
+.collections-stat-card.stat-card-accent-success,
+.collections-stat-card.stat-card-accent-info {
+  background: linear-gradient(
+    135deg,
+    var(--c-purple-light) 0%,
+    var(--c-surface) 100%
+  );
+  border-color: var(--c-border-strong);
+}
+
+.collections-table-shell {
+  overflow: hidden;
+  border-radius: var(--c-radius-lg);
+  border: 1px solid var(--c-border);
+  box-shadow: var(--c-shadow-sm);
+  background: var(--c-surface);
+}
+
+.collections-search-panel {
+  max-width: 320px;
+  margin-left: auto;
+}
+
+.collections-collection-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--c-gap-md);
+  min-width: 0;
+}
+
+.collections-title-link {
+  font-family: var(--c-font-display);
+  font-size: var(--c-text-body);
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--c-primary);
+  text-decoration: none;
+}
+
+.collections-title-link:hover {
+  text-decoration: underline;
+  color: var(--c-purple-dark);
+}
+
+.collections-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--c-radius-sm);
+  background: var(--c-purple-light);
+  border: 1px solid var(--c-border);
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--c-muted);
+}
+
+.collections-table-cell-content {
+  display: flex;
+  align-items: center;
+  padding-block: 0;
+}
+
+.collections-compact-select {
+  max-width: 168px;
+}
+
+.collections-status-select-enabled,
+.collections-status-select-disabled {
+  max-width: 148px;
+}
+
+.collections-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--c-radius-sm);
+  object-fit: cover;
+  border: 1px solid var(--c-border);
+  flex-shrink: 0;
+}

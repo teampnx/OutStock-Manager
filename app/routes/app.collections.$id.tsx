@@ -8,14 +8,25 @@ import { useFetcher, useLoaderData } from "react-router";
 import { useAppBridge } from "@shopify/app-bridge-react";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 
+import { CollectionPinningPanel } from "../components/CollectionPinningPanel";
 import { formatDateTime, formatStoreDateTime } from "../lib/format-datetime";
+import { pageTitle } from "../lib/branding";
 import {
   getCollectionDetails,
   SetCollectionEnabledError,
   setCollectionEnabled,
 } from "../models/collection-management.server";
+import {
+  getPinningPlanContext,
+  handlePinningFormAction,
+  listPinnedProductsForCollection,
+} from "../models/pinned-product.server";
 import { authenticate } from "../shopify.server";
 import styles from "../styles/collections.module.css";
+
+export function meta() {
+  return [{ title: pageTitle("Collection details") }];
+}
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
@@ -26,17 +37,22 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   }
 
   try {
-    const collection = await getCollectionDetails(
-      session.shop,
-      collectionId,
-      admin,
-    );
+    const [collection, pinnedProducts, pinning] = await Promise.all([
+      getCollectionDetails(session.shop, collectionId, admin),
+      listPinnedProductsForCollection(session.shop, collectionId),
+      getPinningPlanContext(session.shop, collectionId),
+    ]);
 
     if (!collection) {
       throw new Response("Collection not found", { status: 404 });
     }
 
-    return { collection, error: null };
+    return {
+      collection,
+      pinnedProducts,
+      pinning,
+      error: null,
+    };
   } catch (error) {
     if (error instanceof Response) {
       throw error;
@@ -44,6 +60,8 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
     return {
       collection: null,
+      pinnedProducts: [],
+      pinning: null,
       error: "Could not load collection details. Please refresh the page.",
     };
   }
@@ -53,12 +71,13 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
   const { admin, session } = await authenticate.admin(request);
   const collectionId = params.id;
   const formData = await request.formData();
+  const intent = formData.get("intent");
 
   if (!collectionId) {
     return { success: false as const, error: "Missing collection id." };
   }
 
-  if (formData.get("intent") === "toggle-enabled") {
+  if (intent === "toggle-enabled") {
     const enabled = formData.get("enabled") === "true";
     try {
       const updated = await setCollectionEnabled(
@@ -74,6 +93,7 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
 
       return {
         success: true as const,
+        intent: "toggle-enabled" as const,
         sortBlockedReason: updated.sortBlockedReason,
       };
     } catch (error) {
@@ -89,6 +109,10 @@ export const action = async ({ request, params }: ActionFunctionArgs) => {
             : "Could not update collection status.",
       };
     }
+  }
+
+  if (intent === "pin-product" || intent === "unpin-product" || intent === "move-pin-up" || intent === "move-pin-down") {
+    return handlePinningFormAction(session.shop, collectionId, formData, admin);
   }
 
   return { success: false as const, error: "Unknown action." };
@@ -114,13 +138,20 @@ function formatLastReorder(
 }
 
 export default function CollectionDetailsPage() {
-  const { collection, error } = useLoaderData<typeof loader>();
+  const { collection, pinnedProducts, pinning, error } =
+    useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const shopify = useAppBridge();
 
+  const isBusy = fetcher.state !== "idle";
+
   useEffect(() => {
-    if (fetcher.data?.success) {
-      if (fetcher.data.sortBlockedReason) {
+    if (!fetcher.data?.success) {
+      return;
+    }
+
+    if (fetcher.data.intent === "toggle-enabled") {
+      if ("sortBlockedReason" in fetcher.data && fetcher.data.sortBlockedReason) {
         shopify.toast.show(fetcher.data.sortBlockedReason, { isError: true });
       } else {
         shopify.toast.show("Collection status updated");
@@ -141,7 +172,17 @@ export default function CollectionDetailsPage() {
     );
   }
 
-  const isToggling = fetcher.state !== "idle";
+  const pinnedIds = new Set(pinnedProducts.map((pin) => pin.shopifyProductId));
+  const pinCandidates = collection.products.filter(
+    (product) => !pinnedIds.has(product.productId),
+  );
+  const isManualCollection = collection.sortOrder === "MANUAL";
+
+  const toggleError =
+    fetcher.data?.success === false &&
+    fetcher.formData?.get("intent") === "toggle-enabled"
+      ? fetcher.data.error
+      : null;
 
   return (
     <s-page heading={collection.title} inlineSize="large">
@@ -152,6 +193,12 @@ export default function CollectionDetailsPage() {
       {collection.sortBlockedReason ? (
         <s-banner tone="warning" heading="Sorting unavailable">
           <s-paragraph>{collection.sortBlockedReason}</s-paragraph>
+        </s-banner>
+      ) : null}
+
+      {toggleError ? (
+        <s-banner tone="critical" heading="Action failed">
+          <s-paragraph>{toggleError}</s-paragraph>
         </s-banner>
       ) : null}
 
@@ -238,11 +285,26 @@ export default function CollectionDetailsPage() {
                 { method: "post" },
               )
             }
-            {...(isToggling ? { loading: true } : {})}
-            disabled={isToggling}
+            {...(isBusy ? { loading: true } : {})}
+            disabled={isBusy}
           >
             {collection.enabled ? "Disable collection" : "Enable collection"}
           </s-button>
+        </s-stack>
+      </s-section>
+
+      <s-section heading="Pinned products">
+        <s-stack direction="block" gap="small-100">
+          <s-link href={`/app/pinning/${collection.id}`}>
+            Manage on Pinning page
+          </s-link>
+          <CollectionPinningPanel
+            pinnedProducts={pinnedProducts}
+            pinning={pinning}
+            pinCandidates={pinCandidates}
+            sortOrderLabel={collection.sortOrderLabel}
+            isManualCollection={isManualCollection}
+          />
         </s-stack>
       </s-section>
 
@@ -274,7 +336,12 @@ export default function CollectionDetailsPage() {
                     className={product.isSoldOut ? styles.soldOutRow : undefined}
                   >
                     <td>{product.position}</td>
-                    <td>{product.title}</td>
+                    <td>
+                      {product.title}
+                      {pinnedIds.has(product.productId) ? (
+                        <span className={styles.pinnedTag}>Pinned</span>
+                      ) : null}
+                    </td>
                     <td>{product.inventoryStatus}</td>
                     <td>{product.originalPosition ?? "—"}</td>
                     <td>{product.currentPosition ?? product.position}</td>
